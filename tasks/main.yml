@@ -1,0 +1,38 @@
+---
+
+- block:
+    - when: postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+
+    - when: postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+  tags:
+    - setup-all
+    - setup-postgis
+    - install-all
+    - install-postgis
+
+- block:
+    - when: not postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
+  tags:
+    - setup-all
+    - setup-postgis
+
+- block:
+    - when: postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgres.yml"
+  tags:
+    - import-postgis
+
+- block:
+    - when: postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgres.yml"
+  tags:
+    - upgrade-postgis
+
+- block:
+    - when: postgis_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/run_vacuum.yml"
+  tags:
+    - run-postgis-vacuum

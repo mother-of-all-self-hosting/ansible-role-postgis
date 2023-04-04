@@ -1,0 +1,71 @@
+---
+
+# Pre-checks
+
+
+# Defaults
+
+- name: Set postgres_start_wait_time, if not provided
+  ansible.builtin.set_fact:
+    postgres_start_wait_time: 15
+  when: "postgres_start_wait_time | default('') == ''"
+
+- name: Set postgres_vacuum_wait_time, if not provided
+  ansible.builtin.set_fact:
+    postgres_vacuum_wait_time: "{{ 7 * 86400 }}"
+  when: "postgres_vacuum_wait_time | default('') == ''"
+
+- name: Set postgres_vacuum_databases_list, if not provided
+  ansible.builtin.set_fact:
+    postgres_vacuum_databases_list: "{{ postgis_vacuum_default_databases_list }}"
+  when: "postgres_vacuum_databases_list | default([]) | length == 0"
+
+# Actual vacuuming work
+
+- name: Ensure Postgis is started
+  ansible.builtin.service:
+    name: "{{ postgis_identifier }}"
+    state: started
+    daemon_reload: true
+  register: postgis_ensure_started_result
+
+- name: Wait a bit, so that Postgis can start
+  when: postgis_ensure_started_result.changed | bool
+  ansible.builtin.wait_for:
+    timeout: "{{ postgres_start_wait_time }}"
+  delegate_to: 127.0.0.1
+  become: false
+
+- name: Detect existing Postgis version
+  ansible.builtin.import_tasks: tasks/detect_existing_postgres_version.yml
+
+- name: Abort, if no existing Postgis version detected
+  ansible.builtin.fail:
+    msg: "Could not find existing Postgis installation"
+  when: "not postgis_detected_existing | bool"
+
+- name: Ensure services are stopped before Postgis vacuuming
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+    daemon_reload: true
+  with_items: "{{ postgis_systemd_services_to_stop_for_maintenance_list }}"
+
+- name: Run Postgres vacuum against specified Postgis databases
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/util/vacuum_database.yml"
+  with_items: "{{ postgres_vacuum_databases_list }}"
+  loop_control:
+    loop_var: postgis_database_to_vacuum
+
+- name: Ensure Postgis is stopped (if it previously was)
+  when: postgis_ensure_started_result.changed | bool
+  ansible.builtin.service:
+    name: "{{ postgis_identifier }}"
+    state: stopped
+
+- name: Ensure services are started back up after Postgis vacuuming
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: true
+  with_items: "{{ postgis_systemd_services_to_stop_for_maintenance_list }}"

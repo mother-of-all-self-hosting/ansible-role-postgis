@@ -1,0 +1,50 @@
+#jinja2: lstrip_blocks: "True"
+[Unit]
+Description=Postgis server ({{ postgis_identifier }})
+{% for service in postgis_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+DefaultDependencies=no
+
+[Service]
+Type=simple
+Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} kill {{ postgis_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ postgis_identifier }} 2>/dev/null || true'
+
+# We need /dev/shm to be larger than the default to allow VACUUM to work.
+# See:
+# - https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1362
+# - https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1268
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} run \
+			--rm \
+			--name {{ postgis_identifier }} \
+			--log-driver=none \
+			--user={{ postgis_uid }}:{{ postgis_gid }} \
+			--cap-drop=ALL \
+			--read-only \
+			--tmpfs=/tmp:rw,noexec,nosuid,size=100m \
+			--tmpfs=/run/postgresql:rw,noexec,nosuid,size=100m \
+			--shm-size={{ postgis_container_shm_size }} \
+			--network={{ postgis_container_network }} \
+			{% if postgis_container_postgres_bind_port %}
+			-p {{ postgis_container_postgres_bind_port }}:5432 \
+			{% endif %}
+			--env-file={{ postgis_base_path }}/env-postgres-server \
+			--mount type=bind,src={{ postgis_data_path }},dst=/var/lib/postgresql/data \
+			--mount type=bind,src=/etc/passwd,dst=/etc/passwd,ro \
+			{% for arg in postgis_container_extra_arguments %}
+			{{ arg }} \
+			{% endfor %}
+			{{ postgis_container_image_to_use }} \
+			postgres {{ postgis_process_extra_arguments|join(' ') }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} kill {{ postgis_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ postgis_identifier }} 2>/dev/null || true'
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ postgis_identifier }}
+
+[Install]
+WantedBy=multi-user.target

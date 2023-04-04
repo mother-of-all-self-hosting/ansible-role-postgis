@@ -1,0 +1,121 @@
+---
+
+
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/detect_existing_postgres_version.yml"
+
+# If we have found an existing version (installed from before), we use its corresponding container image.
+# If not, we install using the latest Postgis.
+#
+# Upgrading is supposed to be performed separately and explicitly (see `upgrade_postgres.yml`).
+- ansible.builtin.set_fact:
+    postgis_container_image_to_use: "{{ postgis_container_image_latest if postgis_detected_version_corresponding_docker_image == '' else postgis_detected_version_corresponding_docker_image }}"
+
+- name: Abort if on an unsupported Postgis version
+  ansible.builtin.fail:
+    msg: "You're on Postgis {{ postgis_detected_version }}, which is no longer supported. To upgrade, see docs/maintenance-postgres.md"
+  when: "postgis_detected_version.startswith('14.')"
+
+- name: Inject warning if on an old version of Postgis
+  ansible.builtin.set_fact:
+    devture_playbook_runtime_messages_list: |
+      {{
+        devture_playbook_runtime_messages_list | default([])
+        +
+        [
+          "NOTE: Your setup is on an old Postgis version ({{ postgis_container_image_to_use }}), while {{ postgis_container_image_latest }} is supported. You can upgrade using --tags=upgrade-postgis"
+        ]
+      }}
+  when: "postgis_container_image_to_use != postgis_container_image_latest"
+
+# Even if we don't run the internal server, we still need this for running the CLI
+- name: Ensure postgres container image is pulled
+  community.docker.docker_image:
+    name: "{{ postgis_container_image_to_use }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ postgis_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else postgis_container_image_force_pull }}"
+  register: result
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: result is not failed
+
+- name: Ensure Postgis paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0700
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
+  with_items:
+    - "{{ postgis_base_path }}"
+    - "{{ postgis_data_path }}"
+    - "{{ postgis_bin_path }}"
+
+# We do this as a separate task, because:
+# - we'd like to do it for the data path only, not for the base path (which contains root-owned environment variable files we'd like to leave as-is)
+# - we need to do it without `mode`, or we risk making certain `.conf` and other files's executable bit to flip to true
+- name: Ensure Postgis data path ownership is correct
+  ansible.builtin.file:
+    path: "{{ postgis_data_path }}"
+    state: directory
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
+    recurse: true
+
+- name: Ensure Postgis environment variables file created
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/{{ item }}.j2"
+    dest: "{{ postgis_base_path }}/{{ item }}"
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
+    mode: 0640
+  with_items:
+    - "env-postgis-psql"
+    - "env-postgis-server"
+
+- name: Ensure Postgis scripts created
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/bin/{{ item }}.j2"
+    dest: "{{ postgis_bin_path }}/{{ item }}"
+    mode: 0755
+  with_items:
+    - cli
+    - cli-non-interactive
+    - dump-all
+
+- name: Ensure postgis container network is created
+  community.general.docker_network:
+    name: "{{ postgis_container_network }}"
+    driver: bridge
+
+- name: Ensure postgis systemd service installed
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/postgres.service.j2"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
+    mode: 0644
+  register: postgis_systemd_service_result
+
+- name: Ensure managed postgis databases prepared
+  ansible.builtin.include_tasks:
+    file: "{{ role_path }}/tasks/util/prepare_managed_databases.yml"
+    apply:
+      tags:
+        - always
+  when: "postgis_managed_databases|length > 0"
+
+- name: Check existence of postgis backup data path
+  ansible.builtin.stat:
+    path: "{{ postgis_data_path }}-auto-upgrade-backup"
+  register: postgis_data_backup_path_stat
+
+- name: Inject warning if backup data remains
+  ansible.builtin.set_fact:
+    devture_playbook_runtime_messages_list: |
+      {{
+        devture_playbook_runtime_messages_list | default([])
+        +
+        [
+          "NOTE: You have some Postgis backup data in `{{ postgis_data_path }}-auto-upgrade-backup`, which was created during the last major Postgis update you ran. If your setup works well after this upgrade, feel free to delete this whole directory."
+        ]
+      }}
+  when: "postgis_data_backup_path_stat.stat.exists"

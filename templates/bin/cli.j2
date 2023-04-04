@@ -1,0 +1,13 @@
+#jinja2: lstrip_blocks: "True"
+#!/bin/bash
+
+docker run \
+	-it \
+	--rm \
+	--user={{ postgis_uid }}:{{ postgis_gid }} \
+	--cap-drop=ALL \
+	--env-file={{ postgis_base_path }}/env-postgres-psql \
+	--network={{ postgis_container_network }} \
+	{{ postgis_container_image_to_use }} \
+	psql -h {{ postgis_connection_hostname }} \
+	"$@"
