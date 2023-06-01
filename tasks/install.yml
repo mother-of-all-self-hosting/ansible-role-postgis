@@ -1,7 +1,7 @@
 ---
 
 
-- ansible.builtin.import_tasks: "{{ role_path }}/tasks/detect_existing_postgres_version.yml"
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/detect_existing_postgis_version.yml"
 
 # If we have found an existing version (installed from before), we use its corresponding container image.
 # If not, we install using the latest Postgis.
@@ -10,25 +10,9 @@
 - ansible.builtin.set_fact:
     postgis_container_image_to_use: "{{ postgis_container_image_latest if postgis_detected_version_corresponding_docker_image == '' else postgis_detected_version_corresponding_docker_image }}"
 
-- name: Abort if on an unsupported Postgis version
-  ansible.builtin.fail:
-    msg: "You're on Postgis {{ postgis_detected_version }}, which is no longer supported. To upgrade, see docs/maintenance-postgres.md"
-  when: "postgis_detected_version.startswith('14.')"
-
-- name: Inject warning if on an old version of Postgis
-  ansible.builtin.set_fact:
-    devture_playbook_runtime_messages_list: |
-      {{
-        devture_playbook_runtime_messages_list | default([])
-        +
-        [
-          "NOTE: Your setup is on an old Postgis version ({{ postgis_container_image_to_use }}), while {{ postgis_container_image_latest }} is supported. You can upgrade using --tags=upgrade-postgis"
-        ]
-      }}
-  when: "postgis_container_image_to_use != postgis_container_image_latest"
 
 # Even if we don't run the internal server, we still need this for running the CLI
-- name: Ensure postgres container image is pulled
+- name: Ensure postgis container image is pulled
   community.docker.docker_image:
     name: "{{ postgis_container_image_to_use }}"
     source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
