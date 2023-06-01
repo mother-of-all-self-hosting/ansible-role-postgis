@@ -1,5 +1,5 @@
 ---
-# Project source code URL: https://github.com/postgres/postgres
+# Project source code URL: https://git.osgeo.org/gitea/postgis/postgis
 
 postgis_enabled: true
 
