@@ -31,7 +31,7 @@ ExecStart={{ devture_systemd_docker_base_host_command_docker }} run \
 			{% if postgis_container_postgres_bind_port %}
 			-p {{ postgis_container_postgres_bind_port }}:5432 \
 			{% endif %}
-			--env-file={{ postgis_base_path }}/env-postgres-server \
+			--env-file={{ postgis_base_path }}/env-postgis-server \
 			--mount type=bind,src={{ postgis_data_path }},dst=/var/lib/postgresql/data \
 			--mount type=bind,src=/etc/passwd,dst=/etc/passwd,ro \
 			{% for arg in postgis_container_extra_arguments %}

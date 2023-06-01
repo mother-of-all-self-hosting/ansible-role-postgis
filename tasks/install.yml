@@ -90,7 +90,7 @@
 
 - name: Ensure postgis systemd service installed
   ansible.builtin.template:
-    src: "{{ role_path }}/templates/systemd/postgres.service.j2"
+    src: "{{ role_path }}/templates/systemd/postgis.service.j2"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
     mode: 0644
   register: postgis_systemd_service_result

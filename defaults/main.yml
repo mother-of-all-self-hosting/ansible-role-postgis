@@ -34,8 +34,8 @@ postgis_initdb_args: '--lc-collate {{ postgis_default_lc_collate }} --lc-ctype {
 # These services will be restarted after the operation completes.
 postgis_systemd_services_to_stop_for_maintenance_list: []
 
-# postgis_vacuum_default_databases_list specifies a list of databases to vacuum when running `--tags=run-postgres-vacuum`,
-# unless a `postgres_vacuum_databases_list` extra argument is provided
+# postgis_vacuum_default_databases_list specifies a list of databases to vacuum when running `--tags=run-postgis-vacuum`,
+# unless a `postgis_vacuum_databases_list` extra argument is provided
 postgis_vacuum_default_databases_list: |
   {{
     (
@@ -49,7 +49,7 @@ postgis_architecture: amd64
 
 postgis_container_network: "{{ postgis_identifier }}"
 
-docker_postgres_container_image_registry_prefix: "docker.io/"
+docker_postgis_container_image_registry_prefix: "docker.io/"
 
 # postgis_container_image_suffix controls whether we use Alpine-based images (`-alpine`) or the normal Debian-based images.
 # Alpine-based Postgres images are smaller and we usually prefer them, but they don't work on ARM32 (tested on a Raspberry Pi 3 running Raspbian 10.7).
@@ -57,7 +57,7 @@ docker_postgres_container_image_registry_prefix: "docker.io/"
 # > LOG:  startup process (PID 37) was terminated by signal 11: Segmentation fault
 postgis_container_image_suffix: "{{ '-alpine' if postgis_architecture in ['amd64', 'arm64'] else '' }}"
 
-postgis_container_image_v15: "{{ docker_postgres_container_image_registry_prefix }}postgis/postgis:15.3.3{{ postgis_container_image_suffix }}"
+postgis_container_image_v15: "{{ docker_postgis_container_image_registry_prefix }}postgis/postgis:15-3.3{{ postgis_container_image_suffix }}"
 postgis_container_image_latest: "{{ postgis_container_image_v15 }}"
 
 # This variable is assigned at runtime. Overriding its value has no effect.
@@ -68,7 +68,7 @@ postgis_container_image_force_pull: "{{ postgis_container_image_to_use.endswith(
 # A list of extra arguments to pass to the container
 postgis_container_extra_arguments: []
 
-# A list of extra arguments to pass to the postgres process
+# A list of extra arguments to pass to the postgis process
 # e.g. "-c 'max_connections=200'"
 postgis_process_extra_arguments: []
 

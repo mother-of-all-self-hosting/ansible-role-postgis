@@ -6,7 +6,7 @@ docker run \
 	--rm \
 	--user={{ postgis_uid }}:{{ postgis_gid }} \
 	--cap-drop=ALL \
-	--env-file={{ postgis_base_path }}/env-postgres-psql \
+	--env-file={{ postgis_base_path }}/env-postgis-psql \
 	--network={{ postgis_container_network }} \
 	{{ postgis_container_image_to_use }} \
 	psql -h {{ postgis_connection_hostname }} \

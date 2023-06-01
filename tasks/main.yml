@@ -19,17 +19,7 @@
     - setup-all
     - setup-postgis
 
-- block:
-    - when: postgis_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgres.yml"
-  tags:
-    - import-postgis
 
-- block:
-    - when: postgis_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgres.yml"
-  tags:
-    - upgrade-postgis
 
 - block:
     - when: postgis_enabled | bool

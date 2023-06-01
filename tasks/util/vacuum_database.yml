@@ -9,7 +9,7 @@
       --user={{ postgis_uid }}:{{ postgis_gid }}
       --cap-drop=ALL
       --network={{ postgis_container_network }}
-      --env-file={{ postgis_base_path }}/env-postgres-psql
+      --env-file={{ postgis_base_path }}/env-postgis-psql
       {{ postgis_detected_version_corresponding_docker_image }}
       psql -v ON_ERROR_STOP=1 -h {{ postgis_identifier }} {{ postgis_database_to_vacuum }} -c 'VACUUM FULL VERBOSE'
 
