@@ -1,28 +1,48 @@
+# SPDX-FileCopyrightText: 2022-2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ---
 
 - block:
-    - when: postgis_enabled | bool
+    - when: postgres_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
 
-    - when: postgis_enabled | bool
+    - when: postgres_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
-    - setup-postgis
+    - setup-postgres
     - install-all
-    - install-postgis
+    - install-postgres
 
 - block:
-    - when: not postgis_enabled | bool
+    - when: not postgres_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
-    - setup-postgis
-
-
+    - setup-postgres
 
 - block:
-    - when: postgis_enabled | bool
+    - when: postgres_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgres.yml"
+  tags:
+    - import-postgres
+
+- block:
+    - when: postgres_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_generic_sqlite_db.yml"
+  tags:
+    - import-generic-sqlite-db
+
+- block:
+    - when: postgres_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgres.yml"
+  tags:
+    - upgrade-postgres
+
+- block:
+    - when: postgres_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/run_vacuum.yml"
   tags:
-    - run-postgis-vacuum
+    - run-postgres-vacuum
