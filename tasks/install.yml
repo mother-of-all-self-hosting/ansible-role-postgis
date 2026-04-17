@@ -99,8 +99,8 @@
     group: "{{ postgis_gid }}"
     mode: "0640"
   with_items:
-    - "env-postgres-psql"
-    - "env-postgres-server"
+    - "env-postgis-psql"
+    - "env-postgis-server"
   register: postgis_config_file_result
 
 - name: Ensure Postgres scripts created

@@ -30,7 +30,7 @@ docker run \
     --rm \
     --user={{ postgis_container_uid }}:{{ postgis_container_gid }} \
     --cap-drop=ALL \
-    --env-file={{ postgis_base_path }}/env-postgres-psql \
+    --env-file={{ postgis_base_path }}/env-postgis-psql \
     {% if postgis_cli_use_unix_socket_enabled %}
     --mount type=bind,src={{ postgis_run_path }},dst={{ postgis_run_path_in_container }} \
     {% else %}

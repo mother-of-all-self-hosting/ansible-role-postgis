@@ -73,7 +73,7 @@
           {% if postgis_container_cap_drop_all_enabled %}
           --cap-drop=ALL
           {% endif %}
-          --env-file={{ postgis_base_path }}/env-postgres-psql
+          --env-file={{ postgis_base_path }}/env-postgis-psql
           --network={{ postgis_container_network_for_preparing_databases }}
           --mount type=bind,src=/tmp/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql,dst=/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql,ro
           --entrypoint={{ postgis_container_shell_path }}

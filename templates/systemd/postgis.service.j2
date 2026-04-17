@@ -37,7 +37,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% if postgis_container_postgis_bind_port %}
       -p {{ postgis_container_postgis_bind_port }}:5432 \
       {% endif %}
-      --env-file={{ postgis_base_path }}/env-postgres-server \
+      --env-file={{ postgis_base_path }}/env-postgis-server \
       --mount type=bind,src={{ postgis_data_path }},dst={{ postgis_data_in_container_path }} \
       {% if postgis_container_unix_socket_enabled %}
       --mount type=bind,src={{ postgis_run_path }},dst={{ postgis_run_path_in_container }} \
