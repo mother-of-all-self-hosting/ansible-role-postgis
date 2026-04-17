@@ -53,7 +53,7 @@
     # If we have found an existing version (installed from before), we use its corresponding container image.
     # If not, we let `postgres_container_image_to_use` default to the latest eligible version.
     #
-    # Upgrading is supposed to be performed separately and explicitly (see `upgrade_postgres.yml`).
+    # Upgrading is supposed to be performed separately and explicitly (see `upgrade_postgis.yml`).
     - ansible.builtin.set_fact:
         postgres_container_image_to_use: "{{ postgres_detected_version_corresponding_container_image }}"
 

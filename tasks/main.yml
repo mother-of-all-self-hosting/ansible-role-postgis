@@ -25,7 +25,7 @@
 
 - block:
     - when: postgres_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgres.yml"
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgis.yml"
   tags:
     - import-postgres
 
@@ -37,7 +37,7 @@
 
 - block:
     - when: postgres_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgres.yml"
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
   tags:
     - upgrade-postgres
 
