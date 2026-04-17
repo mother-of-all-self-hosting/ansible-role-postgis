@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-# This utility aims to determine if there is some existing Postgres version in use or not.
+# This utility aims to determine if there is some existing PostGIS version in use or not.
 # If there is, it also tries to detect the container image that corresponds to that version.
 #
 # This utility is intentionally not in `tasks/util`, because if it were, it wouldn't be possible
 # to include it in other roles via the include_role module: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/include_role_module.html
 
-- name: Initialize Postgres version determination variables (default to empty)
+- name: Initialize PostGIS version determination variables (default to empty)
   ansible.builtin.set_fact:
     postgis_detection_pg_version_path: "{{ postgis_data_path }}/PG_VERSION"
     postgis_detected_existing: false
@@ -17,7 +17,7 @@
     postgis_detected_version_number: 0
     postgis_detected_version_corresponding_container_image: ""
 
-- name: Determine existing Postgres version (check PG_VERSION file)
+- name: Determine existing PostGIS version (check PG_VERSION file)
   ansible.builtin.stat:
     path: "{{ postgis_detection_pg_version_path }}"
   register: result_pg_version_stat
@@ -26,15 +26,15 @@
     postgis_detected_existing: true
   when: "result_pg_version_stat.stat.exists"
 
-- name: Determine existing Postgres version (if detected)
+- name: Determine existing PostGIS version (if detected)
   when: postgis_detected_existing | bool
   block:
-    - name: Determine existing Postgres version (read PG_VERSION file)
+    - name: Determine existing PostGIS version (read PG_VERSION file)
       ansible.builtin.slurp:
         src: "{{ postgis_detection_pg_version_path }}"
       register: result_pg_version
 
-    - name: Determine existing Postgres version (make sense of PG_VERSION file)
+    - name: Determine existing PostGIS version (make sense of PG_VERSION file)
       ansible.builtin.set_fact:
         postgis_detected_version_string: "{{ result_pg_version['content'] | b64decode | replace('\n', '') }}"
 
@@ -88,11 +88,11 @@
         postgis_detected_version_number: 18
       when: "postgis_detected_version_string == '18' or postgis_detected_version_string.startswith('18.')"
 
-    - name: Fail if detected Postgres version number not known to us
+    - name: Fail if detected PostGIS version number not known to us
       ansible.builtin.fail:
-        msg: "Unknown Postgres version number: {{ postgis_detected_version_number }}"
+        msg: "Unknown PostGIS version number: {{ postgis_detected_version_number }}"
       when: "postgis_detected_version_number not in postgis_known_versions"
 
-    - name: Populate corresponding Postgres container image based on detected version
+    - name: Populate corresponding PostGIS container image based on detected version
       ansible.builtin.set_fact:
         postgis_detected_version_corresponding_container_image: "{{ postgis_container_image_by_major_version[postgis_detected_version_number | string] }}"

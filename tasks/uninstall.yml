@@ -4,41 +4,41 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Check existence of Postgres systemd service
+- name: Check existence of PostGIS systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
   register: postgis_service_stat
 
-- name: Uninstall Postgres systemd service and scripts
+- name: Uninstall PostGIS systemd service and scripts
   when: postgis_service_stat.stat.exists | bool
   block:
-    - name: Ensure Postgres systemd service is stopped
+    - name: Ensure PostGIS systemd service is stopped
       ansible.builtin.service:
         name: "{{ postgis_identifier }}"
         state: stopped
         daemon_reload: true
 
-    - name: Ensure Postgres systemd service does not exist
+    - name: Ensure PostGIS systemd service does not exist
       ansible.builtin.file:
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
         state: absent
 
-    - name: Ensure Postgres scripts do not exist
+    - name: Ensure PostGIS scripts do not exist
       ansible.builtin.file:
         path: "{{ postgis_bin_path }}"
         state: absent
 
-    - name: Ensure Postgres container network does not exist
+    - name: Ensure PostGIS container network does not exist
       when: postgis_container_network_deletion_enabled
       block:
-        - name: Ensure Postgres container network does not exist via community.docker.docker_network
+        - name: Ensure PostGIS container network does not exist via community.docker.docker_network
           when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
           community.docker.docker_network:
             name: "{{ postgis_container_network }}"
             state: absent
           register: postgis_network_deletion_result
 
-        - name: Ensure Postgres container network does not exist via ansible.builtin.command
+        - name: Ensure PostGIS container network does not exist via ansible.builtin.command
           when: devture_systemd_docker_base_container_network_creation_method == 'command'
           ansible.builtin.command:
             cmd: >-
@@ -47,13 +47,13 @@
           register: postgis_network_deletion_result
           changed_when: postgis_container_network in postgis_network_deletion_result.stdout
 
-- name: Check existence of Postgres local data path
+- name: Check existence of PostGIS local data path
   ansible.builtin.stat:
     path: "{{ postgis_data_path }}"
   register: postgis_data_path_stat
 
 # We just want to notify the user. Deleting data is too destructive.
-- name: Inject the message about the remaining Postgres local data path
+- name: Inject the message about the remaining PostGIS local data path
   when: postgis_data_path_stat.stat.exists | bool
   ansible.builtin.set_fact:
     devture_playbook_runtime_messages_list: |
@@ -61,6 +61,6 @@
         devture_playbook_runtime_messages_list | default([])
         +
         [
-          "Note: You are not using a local Postgres database, but some old data remains from before in `" + postgis_data_path + "`. Feel free to delete it."
+          "Note: You are not using a local PostGIS database, but some old data remains from before in `" + postgis_data_path + "`. Feel free to delete it."
         ]
       }}

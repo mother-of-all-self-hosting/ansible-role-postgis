@@ -44,29 +44,29 @@
 
 # Actual vacuuming work
 
-- name: Ensure Postgres service is started
+- name: Ensure PostGIS service is started
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: started
     daemon_reload: true
   register: postgis_ensure_started_result
 
-- name: Wait a bit, so that Postgres can start
+- name: Wait a bit, so that PostGIS can start
   when: postgis_ensure_started_result.changed | bool
   ansible.builtin.wait_for:
     timeout: "{{ postgis_start_wait_time }}"
   delegate_to: 127.0.0.1
   become: false
 
-- name: Detect existing Postgres version
+- name: Detect existing PostGIS version
   ansible.builtin.import_tasks: tasks/detect_existing_postgis_version.yml
 
-- name: Abort, if no existing Postgres version detected
+- name: Abort, if no existing PostGIS version detected
   ansible.builtin.fail:
-    msg: "Could not find existing Postgres installation"
+    msg: "Could not find existing PostGIS installation"
   when: "not postgis_detected_existing | bool"
 
-- name: Ensure services are stopped before Postgres vacuuming, if necessary
+- name: Ensure services are stopped before PostGIS vacuuming, if necessary
   when: postgis_vacuum_stops_services | bool
   ansible.builtin.service:
     name: "{{ item }}"
@@ -74,20 +74,20 @@
     daemon_reload: true
   with_items: "{{ postgis_systemd_services_to_stop_for_maintenance_list }}"
 
-# If Postgres is up from before, but it had originally been installed on a different container network,
+# If PostGIS is up from before, but it had originally been installed on a different container network,
 # trying to vacuum databases by connecting to `postgis_container_network` would fail.
 # For this reason, we determine and use the currently used network.
 # Restarting the service later would put it in the current network.
-- name: Check Postgres container network
+- name: Check PostGIS container network
   ansible.builtin.command: "{{ devture_systemd_docker_base_host_command_docker }} container inspect {{ postgis_identifier }} --format '{% raw %}{{.HostConfig.NetworkMode}}{% endraw %}'"
   register: postgis_container_network_check_result
   changed_when: false
 
-- name: Set Postgres container network to use for vacuuming databases
+- name: Set PostGIS container network to use for vacuuming databases
   ansible.builtin.set_fact:
     postgis_container_network_for_vacuuming: "{{ postgis_container_network_check_result.stdout }}"
 
-- name: Generate Postgres database vacuum command
+- name: Generate PostGIS database vacuum command
   ansible.builtin.set_fact:
     postgis_vacuum_run_command: >-
       {{ devture_systemd_docker_base_host_command_docker }} run
@@ -100,16 +100,16 @@
       {{ postgis_detected_version_corresponding_container_image }}
       /bin/sh -c 'for db in {{ postgis_vacuum_databases_list | join(" ") }}; do echo "VACUUM start: $db"; if ! psql -v ON_ERROR_STOP=1 -h {{ postgis_identifier }} "$db" -c "{{ postgis_vacuum_query }}"; then echo "VACUUM failed: $db"; exit 1; fi; echo "VACUUM done: $db"; done; echo "VACUUM completed for all databases"'
 
-- name: Note about Postgres vacuum alternative
+- name: Note about PostGIS vacuum alternative
   ansible.builtin.debug:
     msg: >-
-      Running vacuum against the databases `{{ postgis_vacuum_databases_list | join(", ") }}` with the following Postgres command:
+      Running vacuum against the databases `{{ postgis_vacuum_databases_list | join(", ") }}` with the following PostGIS command:
       `{{ postgis_vacuum_run_command }}`.
       If this crashes, you can stop all processes which may use the database (`systemctl stop example.service another.service`),
-      start Postgres only (`systemctl start {{ postgis_identifier }}`)
+      start PostGIS only (`systemctl start {{ postgis_identifier }}`)
       and manually run the above command directly on the server.
 
-- name: Run Postgres vacuum command
+- name: Run PostGIS vacuum command
   ansible.builtin.command:
     cmd: "{{ postgis_vacuum_run_command }}"
   async: "{{ postgis_vacuum_wait_time }}"
@@ -122,13 +122,13 @@
 - ansible.builtin.debug:
     var: "postgis_vacuum_result"
 
-- name: Ensure Postgres is stopped (if it previously was)
+- name: Ensure PostGIS is stopped (if it previously was)
   when: postgis_ensure_started_result.changed | bool
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: stopped
 
-- name: Ensure services are started back up after Postgres vacuuming, if necessary
+- name: Ensure services are started back up after PostGIS vacuuming, if necessary
   when: postgis_vacuum_stops_services | bool
   ansible.builtin.service:
     name: "{{ item }}"

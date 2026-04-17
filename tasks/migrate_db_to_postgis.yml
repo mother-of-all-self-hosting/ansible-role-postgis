@@ -86,15 +86,15 @@
 
 # Actual import work
 
-# Postgres is most likely started already
-- name: Ensure Postgres service is started
+# PostGIS is most likely started already
+- name: Ensure PostGIS service is started
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: started
     daemon_reload: true
   register: postgis_ensure_started_result
 
-- name: Wait a bit, so that Postgres can start
+- name: Wait a bit, so that PostGIS can start
   ansible.builtin.wait_for:
     timeout: "{{ postgis_start_wait_time }}"
   delegate_to: 127.0.0.1
@@ -103,7 +103,7 @@
 
 # We only stop services here, leaving it to the caller to start them later.
 #
-# We can't start them, because they probably need to be reconfigured too (changing the configuration from using SQLite to Postgres, etc.),
+# We can't start them, because they probably need to be reconfigured too (changing the configuration from using SQLite to PostGIS, etc.),
 # before starting.
 #
 # Since the caller will be starting them, it might make sense to leave stopping to it as well.
@@ -116,7 +116,7 @@
   failed_when: false
   with_items: "{{ postgis_db_migration_request.systemd_services_to_stop }}"
 
-- name: Import {{ postgis_db_migration_request.engine_old }} database from {{ postgis_db_migration_request.src }} into Postgres # noqa name[template]
+- name: Import {{ postgis_db_migration_request.engine_old }} database from {{ postgis_db_migration_request.src }} into PostGIS # noqa name[template]
   ansible.builtin.command:
     cmd: >-
       {{ devture_systemd_docker_base_host_command_docker }} run
@@ -142,7 +142,7 @@
       ansible.builtin.set_fact:
         postgis_container_image_to_use: "{{ postgis_detected_version_corresponding_container_image }}"
 
-    - name: Execute additional Postgres SQL migration statements
+    - name: Execute additional PostGIS SQL migration statements
       ansible.builtin.command:
         cmd: >-
           {{ devture_systemd_docker_base_host_command_docker }} run
@@ -170,11 +170,11 @@
         devture_playbook_runtime_messages_list | default([])
         +
         [
-          "NOTE: Your " + postgis_db_migration_request.engine_old + " database file has been imported into Postgres. The original database file has been moved from `" + postgis_db_migration_request.src + "` to `" + postgis_db_migration_request.src + ".backup`. When you've confirmed that the import went well and everything works, you should be able to safely delete this file."
+          "NOTE: Your " + postgis_db_migration_request.engine_old + " database file has been imported into PostGIS. The original database file has been moved from `" + postgis_db_migration_request.src + "` to `" + postgis_db_migration_request.src + ".backup`. When you've confirmed that the import went well and everything works, you should be able to safely delete this file."
         ]
       }}
 
-- name: Ensure Postgres is stopped (if it previously was)
+- name: Ensure PostGIS is stopped (if it previously was)
   when: "postgis_ensure_started_result.changed | bool"
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"

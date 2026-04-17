@@ -20,7 +20,7 @@
     msg: "File cannot be found on the server at {{ sqlite_database_path }}"
   when: "not sqlite_database_path_stat_result.stat.exists"
 
-# We either expect `postgis_db_connection_string` specifying a full Postgres database connection string,
+# We either expect `postgis_db_connection_string` specifying a full PostGIS database connection string,
 # or `postgis_connection_string_variable_name`, specifying a name of a variable, which contains a valid connection string.
 
 - when: "postgis_connection_string_variable_name is defined"
@@ -30,7 +30,7 @@
         msg: "postgis_connection_string_variable_name is defined, but there is no variable with the name `{{ postgis_connection_string_variable_name }}`"
       when: "lookup('ansible.builtin.varnames', ('^postgis_connection_string_variable_name$'), wantlist=True) | length == 0"
 
-    - name: Get Postgres connection string from variable
+    - name: Get PostGIS connection string from variable
       ansible.builtin.set_fact:
         postgis_db_connection_string: "{{ lookup('vars', postgis_connection_string_variable_name) }}"
 
@@ -50,21 +50,21 @@
 
 # Actual import work
 
-- name: Ensure Postgres service is started
+- name: Ensure PostGIS service is started
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: started
     daemon_reload: true
   register: postgis_ensure_started_result
 
-- name: Wait a bit, so that Postgres can start
+- name: Wait a bit, so that PostGIS can start
   ansible.builtin.wait_for:
     timeout: "{{ postgis_start_wait_time }}"
   delegate_to: 127.0.0.1
   become: false
   when: "postgis_ensure_started_result.changed | bool"
 
-- name: Import SQLite database from {{ sqlite_database_path }} into Postgres # noqa name[template]
+- name: Import SQLite database from {{ sqlite_database_path }} into PostGIS # noqa name[template]
   ansible.builtin.command:
     cmd: >-
       {{ devture_systemd_docker_base_host_command_docker }} run
@@ -93,11 +93,11 @@
         devture_playbook_runtime_messages_list | default([])
         +
         [
-          "NOTE: Your SQLite database file has been imported into Postgres. The original file has been moved from `" + sqlite_database_path + "` to `" + sqlite_database_path + ".backup`. When you've confirmed that the import went well and everything works, you should be able to safely delete this file."
+          "NOTE: Your SQLite database file has been imported into PostGIS. The original file has been moved from `" + sqlite_database_path + "` to `" + sqlite_database_path + ".backup`. When you've confirmed that the import went well and everything works, you should be able to safely delete this file."
         ]
       }}
 
-- name: Ensure Postgres is stopped (if it previously was)
+- name: Ensure PostGIS is stopped (if it previously was)
   when: "postgis_ensure_started_result.changed | bool"
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"

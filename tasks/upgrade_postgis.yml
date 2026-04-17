@@ -28,33 +28,33 @@
     postgis_force_upgrade: false
   when: "postgis_force_upgrade | default('') == ''"
 
-- name: Check Postgres auto-upgrade backup data directory
+- name: Check PostGIS auto-upgrade backup data directory
   ansible.builtin.stat:
     path: "{{ postgis_auto_upgrade_backup_data_path }}"
   register: result_auto_upgrade_path
 
-- name: Abort, if existing Postgres auto-upgrade data path detected
+- name: Abort, if existing PostGIS auto-upgrade data path detected
   ansible.builtin.fail:
     msg: |-
       Detected that a left-over {{ postgis_auto_upgrade_backup_data_path }} exists.
       You should rename it to {{ postgis_data_path }} if the previous upgrade went wrong, or delete it if it went well.
   when: "result_auto_upgrade_path.stat.exists"
 
-- name: Detect existing Postgres version
+- name: Detect existing PostGIS version
   ansible.builtin.import_tasks: tasks/detect_existing_postgis_version.yml
 
-- name: Abort, if no existing Postgres version detected
+- name: Abort, if no existing PostGIS version detected
   ansible.builtin.fail:
-    msg: "Could not find existing Postgres installation"
+    msg: "Could not find existing PostGIS installation"
   when: "not postgis_detected_existing | bool"
 
-- name: Abort, if already at latest Postgres version
+- name: Abort, if already at latest PostGIS version
   ansible.builtin.fail:
-    msg: "You are already running the latest Postgres version supported ({{ postgis_container_image_latest }}). You can force an 'upgrade' anyway by passing `-e postgis_force_upgrade=true` to the playbook."
+    msg: "You are already running the latest PostGIS version supported ({{ postgis_container_image_latest }}). You can force an 'upgrade' anyway by passing `-e postgis_force_upgrade=true` to the playbook."
   when: "postgis_detected_version_number == postgis_eligible_version_max and not postgis_force_upgrade"
 
 - ansible.builtin.debug:
-    msg: "Upgrading the Postgres database from version {{ postgis_detected_version_number }} to the maximum eligible version ({{ postgis_eligible_version_max }})"
+    msg: "Upgrading the PostGIS database from version {{ postgis_detected_version_number }} to the maximum eligible version ({{ postgis_eligible_version_max }})"
 
 - name: Ensure services are stopped
   ansible.builtin.service:
@@ -63,14 +63,14 @@
     daemon_reload: true
   with_items: "{{ postgis_systemd_services_to_stop_for_maintenance_list }}"
 
-- name: Ensure Postgres service is started
+- name: Ensure PostGIS service is started
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: started
     daemon_reload: true
   register: postgis_ensure_started_result
 
-- name: Wait a bit, so that Postgres can start
+- name: Wait a bit, so that PostGIS can start
   when: postgis_ensure_started_result.changed | bool
   ansible.builtin.wait_for:
     timeout: "{{ postgis_start_wait_time }}"
@@ -82,7 +82,7 @@
 # Because we'll be importing into a new container which initializes the default
 # role (`postgis_connection_username`) and database (`postgis_db_name`) by itself on startup,
 # we need to remove these from the dump, or we'll get errors saying these already exist.
-- name: Perform Postgres database dump
+- name: Perform PostGIS database dump
   ansible.builtin.command:
     cmd: >-
       {{ devture_systemd_docker_base_host_command_docker }} run --rm --name {{ postgis_identifier }}-dump
@@ -102,31 +102,31 @@
   tags:
     - skip_ansible_lint
 
-- name: Ensure Postgres is stopped
+- name: Ensure PostGIS is stopped
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     state: stopped
 
-- name: Rename existing Postgres data directory
+- name: Rename existing PostGIS data directory
   ansible.builtin.command:
     cmd: "mv {{ postgis_data_path }} {{ postgis_auto_upgrade_backup_data_path }}"
   register: postgis_upgrade_postgis_move_command_result
   changed_when: postgis_upgrade_postgis_move_command_result.rc == 0
 
 - ansible.builtin.debug:
-    msg: "NOTE: Your Postgres data directory has been moved from `{{ postgis_data_path }}` to `{{ postgis_auto_upgrade_backup_data_path }}`. In the event of failure, you can stop services, move it back and run the playbook with --tags=setup-postgis to restore operation on the old Postgres version ({{ postgis_detected_version_number }})."
+    msg: "NOTE: Your PostGIS data directory has been moved from `{{ postgis_data_path }}` to `{{ postgis_auto_upgrade_backup_data_path }}`. In the event of failure, you can stop services, move it back and run the playbook with --tags=setup-postgis to restore operation on the old PostGIS version ({{ postgis_detected_version_number }})."
 
-- name: Install Postgres
+- name: Install PostGIS
   ansible.builtin.import_tasks: tasks/install.yml
 
-- name: Ensure Postgres autoruns and is restarted
+- name: Ensure PostGIS autoruns and is restarted
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
     enabled: true
     state: restarted
     daemon_reload: true
 
-- name: Wait a bit, so that Postgres can start
+- name: Wait a bit, so that PostGIS can start
   ansible.builtin.wait_for:
     timeout: "{{ postgis_start_wait_time }}"
   delegate_to: 127.0.0.1
@@ -136,7 +136,7 @@
 # role (`postgis_connection_username`) and database (`postgis_db_name`).
 # The dump most likely contains those same entries and would try to re-create them, leading to errors.
 # We need to skip over those lines.
-- name: Generate Postgres database import command
+- name: Generate PostGIS database import command
   ansible.builtin.set_fact:
     postgis_import_command: >-
       {{ devture_systemd_docker_base_host_command_docker }} run --rm --name {{ postgis_identifier }}-import
@@ -169,28 +169,28 @@
 #
 # We want to run `debug: msg=".."`, but that dumps it as JSON and escapes double quotes within it,
 # which ruins the command (`postgis_import_command`)
-- name: Note about Postgres importing
+- name: Note about PostGIS importing
   ansible.builtin.set_fact:
     dummy: true
   with_items:
     - >-
-      Importing Postgres database using the following command: `{{ postgis_import_command }}`.
-      If this crashes, you can stop Postgres (`systemctl stop {{ postgis_identifier }}`),
+      Importing PostGIS database using the following command: `{{ postgis_import_command }}`.
+      If this crashes, you can stop PostGIS (`systemctl stop {{ postgis_identifier }}`),
       delete the new database data (`rm -rf {{ postgis_data_path }}`)
       and restore the automatically-made backup (`mv {{ postgis_auto_upgrade_backup_data_path }} {{ postgis_data_path }}`).
 
-- name: Perform Postgres database import
+- name: Perform PostGIS database import
   ansible.builtin.command:
     cmd: "{{ postgis_import_command }}"
   register: postgis_upgrade_postgis_import_command_result
   changed_when: postgis_upgrade_postgis_import_command_result.rc == 0
 
-- name: Delete Postgres database dump file
+- name: Delete PostGIS database dump file
   ansible.builtin.file:
     path: "{{ postgis_dump_dir }}/{{ postgis_dump_name }}"
     state: absent
 
-- name: Ensure Postgres is stopped (if it previously was)
+- name: Ensure PostGIS is stopped (if it previously was)
   when: "postgis_ensure_started_result.changed | bool"
   ansible.builtin.service:
     name: "{{ postgis_identifier }}"
@@ -204,4 +204,4 @@
   with_items: "{{ postgis_systemd_services_to_stop_for_maintenance_list }}"
 
 - ansible.builtin.debug:
-    msg: "NOTE: Your old Postgres data directory is preserved at `{{ postgis_auto_upgrade_backup_data_path }}`. You might want to get rid of it once you've confirmed that all is well."
+    msg: "NOTE: Your old PostGIS data directory is preserved at `{{ postgis_auto_upgrade_backup_data_path }}`. You might want to get rid of it once you've confirmed that all is well."
