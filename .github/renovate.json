@@ -10,7 +10,7 @@
   "separateMajorMinor": true,
   "packageRules": [
     {
-      "matchPackageNames": ["/postgis/"],
+      "matchPackageNames": ["postgis/postgis"],
       "matchUpdateTypes": ["major", "patch"],
       "enabled": false
     },
