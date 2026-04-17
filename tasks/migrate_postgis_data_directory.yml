@@ -3,15 +3,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-# We used to store Postgres data directly under `/{service}/postgres` (what is now considered `postgis_base_path`).
+# We used to store Postgres data directly under `/{service}/postgis` (what is now considered `postgis_base_path`).
 #
-# From now on, we expect to store Postgres data one directory below now (`/{service}/postgres/data` - `postgis_data_path`).
+# From now on, we expect to store Postgres data one directory below now (`/{service}/postgis/data` - `postgis_data_path`).
 # We wish to use the base directory for other purposes (storing environment variable files, etc.).
 # Mixing those with the Postgres data is no good and it leads to Postgres's `initdb` complaining to initialize
 # a database in a non-empty directory.
 #
-# For this reason, we store the Postgres data in `/{service}/postgres/data` and need to relocate any installations
-# which still store it in the parent directory (`/{service}/postgres`).
+# For this reason, we store the Postgres data in `/{service}/postgis/data` and need to relocate any installations
+# which still store it in the parent directory (`/{service}/postgis`).
 #
 # This utility is intentionally not in `tasks/util`, because if it were, it wouldn't be possible
 # to include it in other roles via the import_role module: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/import_role_module.html

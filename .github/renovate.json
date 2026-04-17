@@ -10,7 +10,7 @@
   "separateMajorMinor": true,
   "packageRules": [
     {
-      "matchPackageNames": ["/postgres/"],
+      "matchPackageNames": ["/postgis/"],
       "matchUpdateTypes": ["major", "patch"],
       "enabled": false
     },
@@ -36,7 +36,7 @@
       "matchStrings": [
         "(?<name>postgis_container_image_v\\d+_version):\\s*\"(?<currentValue>[^\"]+)\""
       ],
-      "depNameTemplate": "postgres",
+      "depNameTemplate": "postgis",
       "datasourceTemplate": "docker",
       "versioningTemplate": "semver-coerced"
     }

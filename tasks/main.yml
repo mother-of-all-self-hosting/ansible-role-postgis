@@ -12,22 +12,22 @@
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
-    - setup-postgres
+    - setup-postgis
     - install-all
-    - install-postgres
+    - install-postgis
 
 - block:
     - when: not postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
-    - setup-postgres
+    - setup-postgis
 
 - block:
     - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgis.yml"
   tags:
-    - import-postgres
+    - import-postgis
 
 - block:
     - when: postgis_enabled | bool
@@ -39,10 +39,10 @@
     - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
   tags:
-    - upgrade-postgres
+    - upgrade-postgis
 
 - block:
     - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/run_vacuum.yml"
   tags:
-    - run-postgres-vacuum
+    - run-postgis-vacuum

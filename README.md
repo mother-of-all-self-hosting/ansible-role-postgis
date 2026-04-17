@@ -24,13 +24,13 @@ Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported op
 
 - **backward compatible**: even if a new Postgres version is available, the role will keep you on the Postgres version you had started with until you perform a major upgrade manually (see below)
 
-- **upgrading between major Postgres versions**: invoking the playbook with a `--tags=upgrade-postgres` performs a dump, data move (`data` -> `data-auto-upgrade-backup`), rebuild, and dump import
+- **upgrading between major Postgres versions**: invoking the playbook with a `--tags=upgrade-postgis` performs a dump, data move (`data` -> `data-auto-upgrade-backup`), rebuild, and dump import
 
-- **importing existing Postgres database dumps**: you can import plain-text (`.sql`), gzipped (`sql.gz`), zstandard-compressed (`.sql.zst`) dumps with the `--tags=import-postgres` tag
+- **importing existing Postgres database dumps**: you can import plain-text (`.sql`), gzipped (`sql.gz`), zstandard-compressed (`.sql.zst`) dumps with the `--tags=import-postgis` tag
 
 - **import data from SQLite, NeDB, etc**: this is an internal task (not exposed as a playbook tag), but the role supports using [pgloader](https://pgloader.io/) to load data into Postgres
 
-- **vacuum support**: you can vacuum all configured databases in one run using the `--tags=run-postgres-vacuum` tag
+- **vacuum support**: you can vacuum all configured databases in one run using the `--tags=run-postgis-vacuum` tag
 
 - **helpful scripts**:
   - get a `psql` interactive terminal via the `/base_path/bin/cli` and `/base_path/bin/cli-non-interactive` scripts
@@ -48,7 +48,7 @@ Example playbook:
   roles:
     - role: galaxy/com.devture.ansible.role.systemd_docker_base
 
-    - role: galaxy/postgres
+    - role: galaxy/postgis
 
     - role: another_role
 ```
@@ -56,9 +56,9 @@ Example playbook:
 Example playbook configuration (`group_vars/servers` or other):
 
 ```yaml
-postgis_identifier: my-postgres
+postgis_identifier: my-postgis
 
-postgis_base_path: "{{ my_base_path }}/postgres"
+postgis_base_path: "{{ my_base_path }}/postgis"
 
 postgis_container_network: "{{ my_container_container_network }}"
 

@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-# Project source code URL: https://github.com/postgres/postgres
+# Project source code URL: https://github.com/postgis/postgis
 
 postgis_enabled: true
 
@@ -13,7 +13,7 @@ postgis_enabled: true
 # - the names of systemd services
 # - the names of various helper scripts
 # - the names of temporary files
-postgis_identifier: 'postgres'
+postgis_identifier: 'postgis'
 
 postgis_base_path: "/{{ postgis_identifier }}"
 postgis_data_path: "{{ postgis_base_path }}/data"
@@ -102,7 +102,7 @@ postgis_systemd_services_to_stop_for_maintenance_list_custom: []
 # but this is now seen as wasteful work, which could delay the installation process.
 postgis_systemd_service_stop_originally_stopped_after_preparation: false
 
-# postgis_vacuum_presets contains various presets related to vacuuming (`--tags=run-postgres-vacuum`).
+# postgis_vacuum_presets contains various presets related to vacuuming (`--tags=run-postgis-vacuum`).
 # See: https://www.postgresql.org/docs/current/sql-vacuum.html
 #
 # `stopServices` specifies whether services (see `postgis_systemd_services_to_stop_for_maintenance_list`)
@@ -124,7 +124,7 @@ postgis_vacuum_presets:
     query: "ANALYZE VERBOSE"
     stopsServices: false
 
-# postgis_vacuum_default_databases_list specifies a list of databases to vacuum when running `--tags=run-postgres-vacuum`,
+# postgis_vacuum_default_databases_list specifies a list of databases to vacuum when running `--tags=run-postgis-vacuum`,
 # unless a `postgis_vacuum_databases_list` extra argument is provided
 postgis_vacuum_default_databases_list: |
   {{
@@ -159,7 +159,7 @@ postgis_container_image_registry_prefix_upstream_default: "docker.io/"
 # > LOG:  startup process (PID 37) was terminated by signal 11: Segmentation fault
 postgis_container_image_suffix: "{{ '-alpine' if postgis_architecture in ['amd64', 'arm64'] else '' }}"
 
-postgis_container_image_name: postgres
+postgis_container_image_name: postgis
 
 postgis_container_image_v9: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v9_version }}{{ postgis_container_image_suffix }}"
 postgis_container_image_v9_version: "9.6.24"
