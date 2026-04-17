@@ -5,9 +5,12 @@ SPDX-FileCopyrightText: 2026 Suguru Hirahara
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Postgres Ansible role
+# PostGIS Ansible role
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Postgres](https://www.postgresql.org/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Postgres with PostGIS extensions](https://github.com/postgis/docker-postgis) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+
+>[!NOTE]
+> This role is based on [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres/tree/8d2f0e7ba8ae8680a37c78350f9d5d4f9f4dbe71) maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team.
 
 This role *implicitly* depends on:
 
