@@ -9,14 +9,14 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 docker run \
     -i \
     --rm \
-    --user={{ postgres_container_uid }}:{{ postgres_container_gid }} \
+    --user={{ postgis_container_uid }}:{{ postgis_container_gid }} \
     --cap-drop=ALL \
-    --env-file={{ postgres_base_path }}/env-postgres-psql \
-    {% if postgres_cli_use_unix_socket_enabled %}
-    --mount type=bind,src={{ postgres_run_path }},dst={{ postgres_run_path_in_container }} \
+    --env-file={{ postgis_base_path }}/env-postgres-psql \
+    {% if postgis_cli_use_unix_socket_enabled %}
+    --mount type=bind,src={{ postgis_run_path }},dst={{ postgis_run_path_in_container }} \
     {% else %}
-    --network={{ postgres_container_network }} \
+    --network={{ postgis_container_network }} \
     {% endif %}
-    {{ postgres_container_image_to_use }} \
-    psql -h {{ postgres_run_path_in_container if postgres_cli_use_unix_socket_enabled else postgres_connection_hostname }} \
+    {{ postgis_container_image_to_use }} \
+    psql -h {{ postgis_run_path_in_container if postgis_cli_use_unix_socket_enabled else postgis_connection_hostname }} \
     "$@"

@@ -5,8 +5,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 #}
 
 #jinja2: lstrip_blocks: True
-POSTGRES_USER={{ postgres_connection_username }}
-POSTGRES_PASSWORD={{ postgres_connection_password }}
-POSTGRES_DB={{ postgres_db_name }}
-POSTGRES_INITDB_ARGS={{ postgres_initdb_args }}
-PGDATA={{ postgres_server_environment_variable_pgdata }}
+POSTGRES_USER={{ postgis_connection_username }}
+POSTGRES_PASSWORD={{ postgis_connection_password }}
+POSTGRES_DB={{ postgis_db_name }}
+POSTGRES_INITDB_ARGS={{ postgis_initdb_args }}
+PGDATA={{ postgis_server_environment_variable_pgdata }}

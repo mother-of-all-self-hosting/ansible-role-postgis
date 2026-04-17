@@ -20,7 +20,7 @@ Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported op
 
 ## Features
 
-- **multiple databases support**: this role manages one main database and root credentials, and optionally a list of additional managed databases with their own credentials (see `postgres_managed_databases`)
+- **multiple databases support**: this role manages one main database and root credentials, and optionally a list of additional managed databases with their own credentials (see `postgis_managed_databases`)
 
 - **backward compatible**: even if a new Postgres version is available, the role will keep you on the Postgres version you had started with until you perform a major upgrade manually (see below)
 
@@ -35,9 +35,9 @@ Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported op
 - **helpful scripts**:
   - get a `psql` interactive terminal via the `/base_path/bin/cli` and `/base_path/bin/cli-non-interactive` scripts
   - dump all databases using the `/base_path/bin/dump-all DIRECTORY_PATH` (which will dump to a `latest-dump.sql.gz` file there)
-  - the CLI scripts can prefer unix sockets when `postgres_cli_use_unix_socket_enabled` is true
+  - the CLI scripts can prefer unix sockets when `postgis_cli_use_unix_socket_enabled` is true
 
-- **unix socket support**: optionally bind-mounts the Postgres unix socket directory to the host at `postgres_run_path` (see `postgres_container_unix_socket_enabled`)
+- **unix socket support**: optionally bind-mounts the Postgres unix socket directory to the host at `postgis_run_path` (see `postgis_container_unix_socket_enabled`)
 
 ## Usage
 
@@ -56,26 +56,26 @@ Example playbook:
 Example playbook configuration (`group_vars/servers` or other):
 
 ```yaml
-postgres_identifier: my-postgres
+postgis_identifier: my-postgres
 
-postgres_base_path: "{{ my_base_path }}/postgres"
+postgis_base_path: "{{ my_base_path }}/postgres"
 
-postgres_container_network: "{{ my_container_container_network }}"
+postgis_container_network: "{{ my_container_container_network }}"
 
-postgres_uid: "{{ my_uid }}"
-postgres_gid: "{{ my_gid }}"
+postgis_uid: "{{ my_uid }}"
+postgis_gid: "{{ my_gid }}"
 
-# If enabled, unix socket will be available at `{{ postgres_run_path }}` on the host.
-postgres_container_unix_socket_enabled: true
+# If enabled, unix socket will be available at `{{ postgis_run_path }}` on the host.
+postgis_container_unix_socket_enabled: true
 
-postgres_vacuum_default_databases_list: ["mydb", "anotherdb"]
+postgis_vacuum_default_databases_list: ["mydb", "anotherdb"]
 
-postgres_systemd_services_to_stop_for_maintenance_list: |
+postgis_systemd_services_to_stop_for_maintenance_list: |
   {{
     (['my-service.service'])
   }}
 
-postgres_managed_databases: |
+postgis_managed_databases: |
   {{
     [{
       'name': my_database_name,

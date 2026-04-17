@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2023-2026 Slavi Pantaleev
 SPDX-License-Identifier: AGPL-3.0-or-later
 #}
 
-{% for managed_db in postgres_managed_databases %}
+{% for managed_db in postgis_managed_databases %}
 -- `CREATE USER` does not support `IF NOT EXISTS`, so we use this workaround to prevent an error and raise a notice instead.
 -- Seen here: https://stackoverflow.com/a/49858797
 DO $$
@@ -24,8 +24,8 @@ ALTER ROLE "{{ managed_db.username }}" PASSWORD '{{ managed_db.password }}';
 SELECT format(
   'CREATE DATABASE "%s" WITH LC_CTYPE %L LC_COLLATE %L OWNER "%s";',
   '{{ managed_db.name }}',
-  '{{ postgres_default_lc_type }}',
-  '{{ postgres_default_lc_collate }}',
+  '{{ postgis_default_lc_type }}',
+  '{{ postgis_default_lc_collate }}',
   '{{ managed_db.username }}'
 )
 WHERE NOT EXISTS (

@@ -3,38 +3,38 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- ansible.builtin.import_tasks: "{{ role_path }}/tasks/migrate_postgres_data_directory.yml"
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/migrate_postgis_data_directory.yml"
 
-- ansible.builtin.import_tasks: "{{ role_path }}/tasks/detect_existing_postgres_version.yml"
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/detect_existing_postgis_version.yml"
 
-- when: postgres_detected_existing | bool
+- when: postgis_detected_existing | bool
   block:
     - name: Abort if on an unsupported Postgres version
       ansible.builtin.fail:
-        msg: "You're on Postgres {{ postgres_detected_version }}, which is no longer supported. To upgrade, see docs/maintenance-postgres.md"
-      when: "postgres_detected_version_number == 9"
+        msg: "You're on Postgres {{ postgis_detected_version }}, which is no longer supported. To upgrade, see docs/maintenance-postgres.md"
+      when: "postgis_detected_version_number == 9"
 
     - name: Inject warning if detected Postgres version number not eligible
-      when: "postgres_detected_version_number not in postgres_eligible_versions"
+      when: "postgis_detected_version_number not in postgis_eligible_versions"
       ansible.builtin.set_fact:
         devture_playbook_runtime_messages_list: |
           {{
             devture_playbook_runtime_messages_list | default([])
             +
             [
-              "WARNING: We detected that Postgres version (" + postgres_detected_version_number | string + ") is already installed, but it's not normally eligible for installation for your setup. You or some other role is currently restricting `postgres_allowed_versions` to " + postgres_allowed_versions | to_json + " for compatibility reasons. Perhaps this other role does not support other Postgres versions. You can suppress this warning by force-settting `postgres_allowed_versions` to something like [" + postgres_detected_version_number | to_json + "], though it would be better to figure out where the restriction comes from and to potentially downgrade Postgres to the maximum allowed version (" + postgres_eligible_version_max | string + ") imposed by the current restrictions.",
+              "WARNING: We detected that Postgres version (" + postgis_detected_version_number | string + ") is already installed, but it's not normally eligible for installation for your setup. You or some other role is currently restricting `postgis_allowed_versions` to " + postgis_allowed_versions | to_json + " for compatibility reasons. Perhaps this other role does not support other Postgres versions. You can suppress this warning by force-settting `postgis_allowed_versions` to something like [" + postgis_detected_version_number | to_json + "], though it would be better to figure out where the restriction comes from and to potentially downgrade Postgres to the maximum allowed version (" + postgis_eligible_version_max | string + ") imposed by the current restrictions.",
             ]
           }}
 
     - name: Inject warning if on maximum eligible Postgres version, but held back from the maximum known version
-      when: "postgres_detected_version_number == postgres_eligible_version_max and postgres_eligible_version_max < postgres_known_version_max"
+      when: "postgis_detected_version_number == postgis_eligible_version_max and postgis_eligible_version_max < postgis_known_version_max"
       ansible.builtin.set_fact:
         devture_playbook_runtime_messages_list: |
           {{
             devture_playbook_runtime_messages_list | default([])
             +
             [
-              "NOTE: We detected that Postgres version (" + postgres_detected_version_number | string + ") is already installed. While a newer version (" + postgres_known_version_max | string + ") is normally available, it's not eligible for installation for your setup. You or some other role is currently restricting `postgres_allowed_versions` (likely via `postgres_allowed_versions_auto` or `postgres_allowed_versions_custom`) to " + postgres_allowed_versions | to_json + " for compatibility reasons. Perhaps this other role does not support the newer Postgres version.",
+              "NOTE: We detected that Postgres version (" + postgis_detected_version_number | string + ") is already installed. While a newer version (" + postgis_known_version_max | string + ") is normally available, it's not eligible for installation for your setup. You or some other role is currently restricting `postgis_allowed_versions` (likely via `postgis_allowed_versions_auto` or `postgis_allowed_versions_custom`) to " + postgis_allowed_versions | to_json + " for compatibility reasons. Perhaps this other role does not support the newer Postgres version.",
             ]
           }}
 
@@ -45,97 +45,97 @@
             devture_playbook_runtime_messages_list | default([])
             +
             [
-              "NOTE: Your setup is on an old Postgres version (" + postgres_detected_version_number | string + ") and can be upgraded to version " + postgres_available_upgrade_versions | max | string + ". You can upgrade using --tags=upgrade-postgres"
+              "NOTE: Your setup is on an old Postgres version (" + postgis_detected_version_number | string + ") and can be upgraded to version " + postgis_available_upgrade_versions | max | string + ". You can upgrade using --tags=upgrade-postgres"
             ]
           }}
-      when: "postgres_detected_existing and postgres_available_upgrade_versions | length > 0"
+      when: "postgis_detected_existing and postgis_available_upgrade_versions | length > 0"
 
     # If we have found an existing version (installed from before), we use its corresponding container image.
-    # If not, we let `postgres_container_image_to_use` default to the latest eligible version.
+    # If not, we let `postgis_container_image_to_use` default to the latest eligible version.
     #
     # Upgrading is supposed to be performed separately and explicitly (see `upgrade_postgis.yml`).
     - ansible.builtin.set_fact:
-        postgres_container_image_to_use: "{{ postgres_detected_version_corresponding_container_image }}"
+        postgis_container_image_to_use: "{{ postgis_detected_version_corresponding_container_image }}"
 
 # Even if we don't run the internal server, we still need this for running the CLI
 - name: Ensure postgres container image is pulled
   community.docker.docker_image:
-    name: "{{ postgres_container_image_to_use }}"
+    name: "{{ postgis_container_image_to_use }}"
     source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
-    force_source: "{{ postgres_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
-    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else postgres_container_image_force_pull }}"
-  register: postgres_container_image_pull_result
+    force_source: "{{ postgis_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else postgis_container_image_force_pull }}"
+  register: postgis_container_image_pull_result
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
-  until: postgres_container_image_pull_result is not failed
+  until: postgis_container_image_pull_result is not failed
 
 - name: Ensure Postgres paths exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0700"
-    owner: "{{ postgres_uid }}"
-    group: "{{ postgres_gid }}"
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
   with_items:
-    - "{{ postgres_base_path }}"
-    - "{{ postgres_data_path }}"
-    - "{{ postgres_bin_path }}"
+    - "{{ postgis_base_path }}"
+    - "{{ postgis_data_path }}"
+    - "{{ postgis_bin_path }}"
 
 - name: Ensure Postgres run path exists
   ansible.builtin.file:
-    path: "{{ postgres_run_path }}"
+    path: "{{ postgis_run_path }}"
     state: directory
     mode: "0755"
-    owner: "{{ postgres_uid }}"
-    group: "{{ postgres_gid }}"
-  when: postgres_container_unix_socket_enabled
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
+  when: postgis_container_unix_socket_enabled
 # Separate task to allow different permissions for unix socket access.
 
 - name: Ensure Postgres environment variables file created
   ansible.builtin.template:
     src: "{{ role_path }}/templates/{{ item }}.j2"
-    dest: "{{ postgres_base_path }}/{{ item }}"
-    owner: "{{ postgres_uid }}"
-    group: "{{ postgres_gid }}"
+    dest: "{{ postgis_base_path }}/{{ item }}"
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
     mode: "0640"
   with_items:
     - "env-postgres-psql"
     - "env-postgres-server"
-  register: postgres_config_file_result
+  register: postgis_config_file_result
 
 - name: Ensure Postgres scripts created
   ansible.builtin.template:
     src: "{{ role_path }}/templates/bin/{{ item }}.j2"
-    dest: "{{ postgres_bin_path }}/{{ item }}"
+    dest: "{{ postgis_bin_path }}/{{ item }}"
     mode: "0755"
   with_items:
     - cli
     - cli-non-interactive
     - dump-all
-  register: postgres_scripts_result
+  register: postgis_scripts_result
 
 - name: Ensure Postgres container network is created
   community.docker.docker_network:
     enable_ipv6: "{{ devture_systemd_docker_base_ipv6_enabled }}"
-    name: "{{ postgres_container_network }}"
+    name: "{{ postgis_container_network }}"
     driver: bridge
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
 
 - name: Ensure Postgres systemd service installed
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/postgis.service.j2"
-    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgres_identifier }}.service"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
     mode: "0644"
-  register: postgres_systemd_service_result
+  register: postgis_systemd_service_result
 
 - name: Determine whether Postgres needs a restart
   ansible.builtin.set_fact:
-    postgres_restart_necessary: >-
+    postgis_restart_necessary: >-
       {{
-        postgres_config_file_result.changed | default(false)
-        or postgres_scripts_result.changed | default(false)
-        or postgres_systemd_service_result.changed | default(false)
-        or postgres_container_image_pull_result.changed | default(false)
+        postgis_config_file_result.changed | default(false)
+        or postgis_scripts_result.changed | default(false)
+        or postgis_systemd_service_result.changed | default(false)
+        or postgis_container_image_pull_result.changed | default(false)
       }}
 
 - name: Ensure managed Postgres databases prepared
@@ -144,12 +144,12 @@
     apply:
       tags:
         - always
-  when: "postgres_managed_databases|length > 0"
+  when: "postgis_managed_databases|length > 0"
 
 - name: Check existence of Postgres backup data path
   ansible.builtin.stat:
-    path: "{{ postgres_data_path }}-auto-upgrade-backup"
-  register: postgres_data_backup_path_stat
+    path: "{{ postgis_data_path }}-auto-upgrade-backup"
+  register: postgis_data_backup_path_stat
 
 - name: Inject warning if backup data remains
   ansible.builtin.set_fact:
@@ -158,7 +158,7 @@
         devture_playbook_runtime_messages_list | default([])
         +
         [
-          "NOTE: You have some Postgres backup data in `" + postgres_data_path + "-auto-upgrade-backup`, which was created during the last major Postgres update you ran. If your setup works well after this upgrade, feel free to delete this whole directory."
+          "NOTE: You have some Postgres backup data in `" + postgis_data_path + "-auto-upgrade-backup`, which was created during the last major Postgres update you ran. If your setup works well after this upgrade, feel free to delete this whole directory."
         ]
       }}
-  when: "postgres_data_backup_path_stat.stat.exists"
+  when: "postgis_data_backup_path_stat.stat.exists"

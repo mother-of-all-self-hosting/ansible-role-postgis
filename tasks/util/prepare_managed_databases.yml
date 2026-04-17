@@ -5,36 +5,36 @@
 ---
 - name: Ensure Postgres service is started
   ansible.builtin.service:
-    name: "{{ postgres_identifier }}"
+    name: "{{ postgis_identifier }}"
     state: started
     daemon_reload: true
-  register: postgres_ensure_started_result
+  register: postgis_ensure_started_result
 
 - name: Wait a bit, so that Postgres can start
-  when: postgres_ensure_started_result.changed | bool
+  when: postgis_ensure_started_result.changed | bool
   ansible.builtin.wait_for:
-    timeout: "{{ postgres_managed_databases_postgres_start_wait_timeout_seconds }}"
+    timeout: "{{ postgis_managed_databases_postgis_start_wait_timeout_seconds }}"
   delegate_to: 127.0.0.1
   become: false
 
 # If Postgres is up from before, but it had originally been installed on a different container network,
-# trying to prepare databases by connecting to `postgres_container_network` would fail.
+# trying to prepare databases by connecting to `postgis_container_network` would fail.
 # For this reason, we determine and use the currently used network.
 # Restarting the service later would put it in the current network.
 - name: Check Postgres container network
-  ansible.builtin.command: "{{ devture_systemd_docker_base_host_command_docker }} container inspect {{ postgres_identifier }} --format '{% raw %}{{.HostConfig.NetworkMode}}{% endraw %}'"
-  register: postgres_container_network_check_result
+  ansible.builtin.command: "{{ devture_systemd_docker_base_host_command_docker }} container inspect {{ postgis_identifier }} --format '{% raw %}{{.HostConfig.NetworkMode}}{% endraw %}'"
+  register: postgis_container_network_check_result
   changed_when: false
 
 - name: Set Postgres container network to use for preparing databases
   ansible.builtin.set_fact:
-    postgres_container_network_for_preparing_databases: "{{ postgres_container_network_check_result.stdout }}"
+    postgis_container_network_for_preparing_databases: "{{ postgis_container_network_check_result.stdout }}"
 
 - name: Detect managed databases with invalid fields
   ansible.builtin.set_fact:
-    postgres_managed_databases_with_missing_keys: >-
+    postgis_managed_databases_with_missing_keys: >-
       {%- set result = [] -%}
-      {%- for db in postgres_managed_databases -%}
+      {%- for db in postgis_managed_databases -%}
         {%- set missing = ['name', 'username', 'password'] | difference(db.keys() | list) -%}
         {%- if missing | length > 0 -%}
           {%- set _ = result.append({'name': db.name | default('<unknown>'), 'missing': missing}) -%}
@@ -47,53 +47,53 @@
   ansible.builtin.fail:
     msg: >-
       The following managed database definitions lack required keys:
-      {% for db in postgres_managed_databases_with_missing_keys %}
+      {% for db in postgis_managed_databases_with_missing_keys %}
       {{ db.name }} (missing: {{ db.missing | join(', ') }}){% if not loop.last %}, {% endif %}
       {% endfor %}
-  when: postgres_managed_databases_with_missing_keys | length > 0
+  when: postgis_managed_databases_with_missing_keys | length > 0
 
 - name: Initialize managed databases
   no_log: true
-  when: postgres_managed_databases | length > 0
+  when: postgis_managed_databases | length > 0
   block:
     - name: Create managed database initialization SQL file
       ansible.builtin.template:
         src: "{{ role_path }}/templates/sql/init-managed-dbs-user-and-role.sql.j2"
-        dest: "/tmp/{{ postgres_identifier }}-init-managed-dbs-user-and-role.sql"
+        dest: "/tmp/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql"
         mode: "0600"
-        owner: "{{ postgres_uid }}"
-        group: "{{ postgres_gid }}"
+        owner: "{{ postgis_uid }}"
+        group: "{{ postgis_gid }}"
 
     - name: Execute Postgres managed database initialization SQL file
       ansible.builtin.command:
         cmd: >-
           {{ devture_systemd_docker_base_host_command_docker }} run
           --rm
-          --user={{ postgres_container_uid }}:{{ postgres_container_gid }}
-          {% if postgres_container_cap_drop_all_enabled %}
+          --user={{ postgis_container_uid }}:{{ postgis_container_gid }}
+          {% if postgis_container_cap_drop_all_enabled %}
           --cap-drop=ALL
           {% endif %}
-          --env-file={{ postgres_base_path }}/env-postgres-psql
-          --network={{ postgres_container_network_for_preparing_databases }}
-          --mount type=bind,src=/tmp/{{ postgres_identifier }}-init-managed-dbs-user-and-role.sql,dst=/{{ postgres_identifier }}-init-managed-dbs-user-and-role.sql,ro
-          --entrypoint={{ postgres_container_shell_path }}
-          {{ postgres_container_image_to_use }}
+          --env-file={{ postgis_base_path }}/env-postgres-psql
+          --network={{ postgis_container_network_for_preparing_databases }}
+          --mount type=bind,src=/tmp/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql,dst=/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql,ro
+          --entrypoint={{ postgis_container_shell_path }}
+          {{ postgis_container_image_to_use }}
           -c
-          'psql -v ON_ERROR_STOP=0 -h {{ postgres_connection_hostname }} --file=/{{ postgres_identifier }}-init-managed-dbs-user-and-role.sql'
+          'psql -v ON_ERROR_STOP=0 -h {{ postgis_connection_hostname }} --file=/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql'
       changed_when: true
-      register: postgres_managed_dbs_init_result
+      register: postgis_managed_dbs_init_result
       failed_when: >-
-        (postgres_managed_dbs_init_result.stderr | default('')) is search('(?m)^ERROR:')
+        (postgis_managed_dbs_init_result.stderr | default('')) is search('(?m)^ERROR:')
         or
-        (postgres_managed_dbs_init_result.stdout | default('')) is search('(?m)^ERROR:')
+        (postgis_managed_dbs_init_result.stdout | default('')) is search('(?m)^ERROR:')
 
     - name: Delete managed database initialization SQL file
       ansible.builtin.file:
-        path: /tmp/{{ postgres_identifier }}-init-managed-dbs-user-and-role.sql
+        path: /tmp/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql
         state: absent
 
 - name: Ensure Postgres is stopped, if it originally was and if we are configured to do it
-  when: postgres_systemd_service_stop_originally_stopped_after_preparation | bool and postgres_ensure_started_result.changed | bool
+  when: postgis_systemd_service_stop_originally_stopped_after_preparation | bool and postgis_ensure_started_result.changed | bool
   ansible.builtin.service:
-    name: "{{ postgres_identifier }}"
+    name: "{{ postgis_identifier }}"
     state: stopped

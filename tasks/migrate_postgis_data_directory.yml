@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-# We used to store Postgres data directly under `/{service}/postgres` (what is now considered `postgres_base_path`).
+# We used to store Postgres data directly under `/{service}/postgres` (what is now considered `postgis_base_path`).
 #
-# From now on, we expect to store Postgres data one directory below now (`/{service}/postgres/data` - `postgres_data_path`).
+# From now on, we expect to store Postgres data one directory below now (`/{service}/postgres/data` - `postgis_data_path`).
 # We wish to use the base directory for other purposes (storing environment variable files, etc.).
 # Mixing those with the Postgres data is no good and it leads to Postgres's `initdb` complaining to initialize
 # a database in a non-empty directory.
@@ -18,14 +18,14 @@
 
 - name: Check if old Postgres data directory is used
   ansible.builtin.stat:
-    path: "{{ postgres_base_path }}/PG_VERSION"
+    path: "{{ postgis_base_path }}/PG_VERSION"
   register: result_pg_old_data_dir_stat
 
 - name: Warn if old Postgres data directory detected
   ansible.builtin.debug:
     msg: >
-      Found that you have Postgres data in `{{ postgres_base_path }}`.
-      From now on, Postgres data is supposed to be stored in `{{ postgres_data_path }}` instead.
+      Found that you have Postgres data in `{{ postgis_base_path }}`.
+      From now on, Postgres data is supposed to be stored in `{{ postgis_data_path }}` instead.
       We'll stop Postgres and relocate the files there for you.
   when: "result_pg_old_data_dir_stat.stat.exists"
 
@@ -33,14 +33,14 @@
 # as to ignore any `postmaster.pid` files, etc.
 - name: Ensure Postgres is stopped
   ansible.builtin.service:
-    name: "{{ postgres_identifier }}"
+    name: "{{ postgis_identifier }}"
     state: stopped
     daemon_reload: true
   when: "result_pg_old_data_dir_stat.stat.exists"
 
 - name: Find files and directories in old Postgres data path
   ansible.builtin.find:
-    paths: "{{ postgres_base_path }}"
+    paths: "{{ postgis_base_path }}"
     file_type: any
     excludes: ["data"]
   register: "result_pg_old_data_dir_find"
@@ -48,21 +48,21 @@
 
 - name: Ensure new Postgres data path exists
   ansible.builtin.file:
-    path: "{{ postgres_data_path }}"
+    path: "{{ postgis_data_path }}"
     state: directory
     mode: "0700"
-    owner: "{{ postgres_uid }}"
-    group: "{{ postgres_gid }}"
+    owner: "{{ postgis_uid }}"
+    group: "{{ postgis_gid }}"
   when: "result_pg_old_data_dir_stat.stat.exists"
 
 - when: "result_pg_old_data_dir_stat.stat.exists"
   block:
     - name: Relocate Postgres data files from old directory to new
       ansible.builtin.command:
-        cmd: "mv {{ item.path }} {{ postgres_data_path }}/{{ item.path | basename }}"
+        cmd: "mv {{ item.path }} {{ postgis_data_path }}/{{ item.path | basename }}"
       with_items: "{{ result_pg_old_data_dir_find.files }}"
-      register: postgres_migrate_postgres_data_directory_move_result
-      changed_when: postgres_migrate_postgres_data_directory_move_result.rc == 0
+      register: postgis_migrate_postgis_data_directory_move_result
+      changed_when: postgis_migrate_postgis_data_directory_move_result.rc == 0
 
 # Intentionally not starting Postgres here.
 # It likely needs to be updated to point to the new directory.
@@ -71,7 +71,7 @@
 
 - name: Ensure outdated Postgres service doesn't exist
   ansible.builtin.file:
-    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgres_identifier }}.service"
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ postgis_identifier }}.service"
     state: absent
   when: "result_pg_old_data_dir_stat.stat.exists"
 

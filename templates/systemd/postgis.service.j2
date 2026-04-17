@@ -5,8 +5,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 #}
 
 [Unit]
-Description=Postgres server ({{ postgres_identifier }})
-{% for service in postgres_systemd_required_services_list %}
+Description=Postgres server ({{ postgis_identifier }})
+{% for service in postgis_systemd_required_services_list %}
 Requires={{ service }}
 After={{ service }}
 {% endfor %}
@@ -15,7 +15,7 @@ DefaultDependencies=no
 [Service]
 Type=simple
 Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
-ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ postgres_container_cleanup_command | trim | replace("\n", " ") }}'
+ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ postgis_container_cleanup_command | trim | replace("\n", " ") }}'
 
 # We need /dev/shm to be larger than the default to allow VACUUM to work.
 # See:
@@ -23,50 +23,50 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ postgres_c
 # - https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1268
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --rm \
-      --name {{ postgres_identifier }} \
+      --name {{ postgis_identifier }} \
       --log-driver=none \
-      --user={{ postgres_container_uid }}:{{ postgres_container_gid }} \
-      {% if postgres_container_cap_drop_all_enabled %}
+      --user={{ postgis_container_uid }}:{{ postgis_container_gid }} \
+      {% if postgis_container_cap_drop_all_enabled %}
       --cap-drop=ALL \
       {% endif %}
-      {% if postgres_container_read_only_enabled %}
+      {% if postgis_container_read_only_enabled %}
       --read-only \
       {% endif %}
-      --shm-size={{ postgres_container_shm_size }} \
-      --network={{ postgres_container_network }} \
-      {% if postgres_container_postgres_bind_port %}
-      -p {{ postgres_container_postgres_bind_port }}:5432 \
+      --shm-size={{ postgis_container_shm_size }} \
+      --network={{ postgis_container_network }} \
+      {% if postgis_container_postgis_bind_port %}
+      -p {{ postgis_container_postgis_bind_port }}:5432 \
       {% endif %}
-      --env-file={{ postgres_base_path }}/env-postgres-server \
-      --mount type=bind,src={{ postgres_data_path }},dst={{ postgres_data_in_container_path }} \
-      {% if postgres_container_unix_socket_enabled %}
-      --mount type=bind,src={{ postgres_run_path }},dst={{ postgres_run_path_in_container }} \
+      --env-file={{ postgis_base_path }}/env-postgres-server \
+      --mount type=bind,src={{ postgis_data_path }},dst={{ postgis_data_in_container_path }} \
+      {% if postgis_container_unix_socket_enabled %}
+      --mount type=bind,src={{ postgis_run_path }},dst={{ postgis_run_path_in_container }} \
       {% endif %}
-      {% if postgres_container_mount_etc_passwd_enabled %}
+      {% if postgis_container_mount_etc_passwd_enabled %}
       --mount type=bind,src=/etc/passwd,dst=/etc/passwd,ro \
       {% endif %}
-      --tmpfs=/tmp:rw,noexec,nosuid,size={{ postgres_container_tmpfs_tmp_size }} \
-      {% if not postgres_container_unix_socket_enabled %}
-      --tmpfs={{ postgres_run_path_in_container }}:rw,noexec,nosuid,size={{ postgres_container_tmpfs_run_size }} \
+      --tmpfs=/tmp:rw,noexec,nosuid,size={{ postgis_container_tmpfs_tmp_size }} \
+      {% if not postgis_container_unix_socket_enabled %}
+      --tmpfs={{ postgis_run_path_in_container }}:rw,noexec,nosuid,size={{ postgis_container_tmpfs_run_size }} \
       {% endif %}
-      {% for arg in postgres_container_extra_arguments %}
+      {% for arg in postgis_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ postgres_container_image_to_use }} \
-      postgres {{ postgres_process_extra_arguments | join(' ') }}
+      {{ postgis_container_image_to_use }} \
+      postgres {{ postgis_process_extra_arguments | join(' ') }}
 
-{% for network in postgres_container_additional_networks %}
-ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ postgres_identifier }}
+{% for network in postgis_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ postgis_identifier }}
 {% endfor %}
 
-ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ postgres_identifier }}
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ postgis_identifier }}
 
-ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop -t {{ postgres_container_stop_grace_time_seconds }} {{ postgres_identifier }} 2>/dev/null || true'
-ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ postgres_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop -t {{ postgis_container_stop_grace_time_seconds }} {{ postgis_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ postgis_identifier }} 2>/dev/null || true'
 
 Restart=always
 RestartSec=30
-SyslogIdentifier={{ postgres_identifier }}
+SyslogIdentifier={{ postgis_identifier }}
 
 [Install]
 WantedBy=multi-user.target

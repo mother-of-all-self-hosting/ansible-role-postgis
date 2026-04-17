@@ -5,10 +5,10 @@
 ---
 
 - block:
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
 
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
@@ -17,32 +17,32 @@
     - install-postgres
 
 - block:
-    - when: not postgres_enabled | bool
+    - when: not postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
     - setup-postgres
 
 - block:
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgis.yml"
   tags:
     - import-postgres
 
 - block:
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_generic_sqlite_db.yml"
   tags:
     - import-generic-sqlite-db
 
 - block:
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
   tags:
     - upgrade-postgres
 
 - block:
-    - when: postgres_enabled | bool
+    - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/run_vacuum.yml"
   tags:
     - run-postgres-vacuum

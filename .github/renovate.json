@@ -34,7 +34,7 @@
         "/defaults/main.yml$/"
       ],
       "matchStrings": [
-        "(?<name>postgres_container_image_v\\d+_version):\\s*\"(?<currentValue>[^\"]+)\""
+        "(?<name>postgis_container_image_v\\d+_version):\\s*\"(?<currentValue>[^\"]+)\""
       ],
       "depNameTemplate": "postgres",
       "datasourceTemplate": "docker",
