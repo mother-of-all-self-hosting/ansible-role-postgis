@@ -22,7 +22,7 @@ ALTER ROLE "{{ managed_db.username }}" PASSWORD '{{ managed_db.password }}';
 -- `CREATE DATABASE` cannot run inside a transaction block and does not support `IF NOT EXISTS`.
 -- Use a meta-command to conditionally execute it only when missing, avoiding an ERROR that would fail the task after execution.
 SELECT format(
-  'CREATE DATABASE "%s" WITH LC_CTYPE %L LC_COLLATE %L OWNER "%s";',
+  'CREATE DATABASE "%s" WITH LC_CTYPE %L LC_COLLATE %L OWNER "%s" TEMPLATE=template_postgis;',
   '{{ managed_db.name }}',
   '{{ postgis_default_lc_type }}',
   '{{ postgis_default_lc_collate }}',
