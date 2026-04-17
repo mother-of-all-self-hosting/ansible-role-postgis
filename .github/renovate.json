@@ -36,7 +36,7 @@
       "matchStrings": [
         "(?<name>postgis_container_image_v\\d+_version):\\s*\"(?<currentValue>[^\"]+)\""
       ],
-      "depNameTemplate": "postgis",
+      "depNameTemplate": "postgis/postgis",
       "datasourceTemplate": "docker",
       "versioningTemplate": "semver-coerced"
     }
