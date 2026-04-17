@@ -149,7 +149,7 @@ postgis_container_additional_networks: "{{ postgis_container_additional_networks
 postgis_container_additional_networks_auto: []
 postgis_container_additional_networks_custom: []
 
-postgis_container_image_registry_prefix: "{{ postgis_container_image_registry_prefix_upstream }}"
+postgis_container_image_registry_prefix: "{{ postgis_container_image_registry_prefix_upstream }}postgis/"
 postgis_container_image_registry_prefix_upstream: "{{ postgis_container_image_registry_prefix_upstream_default }}"
 postgis_container_image_registry_prefix_upstream_default: "docker.io/"
 
@@ -162,34 +162,34 @@ postgis_container_image_suffix: "{{ '-alpine' if postgis_architecture in ['amd64
 postgis_container_image_name: postgis
 
 postgis_container_image_v9: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v9_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v9_version: "9.6.24"
+postgis_container_image_v9_version: "9.6-3.2"
 
 postgis_container_image_v10: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v10_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v10_version: "10.23"
+postgis_container_image_v10_version: "10-3.2"
 
 postgis_container_image_v11: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v11_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v11_version: "11.22"
+postgis_container_image_v11_version: "11-3.3"
 
 postgis_container_image_v12: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v12_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v12_version: "12.22"
+postgis_container_image_v12_version: "12-3.5"
 
 postgis_container_image_v13: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v13_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v13_version: "13.23"
+postgis_container_image_v13_version: "13-3.5"
 
 postgis_container_image_v14: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v14_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v14_version: "14.22"
+postgis_container_image_v14_version: "14-3.5"
 
 postgis_container_image_v15: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v15_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v15_version: "15.17"
+postgis_container_image_v15_version: "15-3.5"
 
 postgis_container_image_v16: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v16_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v16_version: "16.13"
+postgis_container_image_v16_version: "16-3.5"
 
 postgis_container_image_v17: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v17_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v17_version: "17.9"
+postgis_container_image_v17_version: "17-3.6"
 
 postgis_container_image_v18: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v18_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v18_version: "18.3"
+postgis_container_image_v18_version: "18-3.6"
 
 postgis_container_image_by_major_version:
   "9": "{{ postgis_container_image_v9 }}"
