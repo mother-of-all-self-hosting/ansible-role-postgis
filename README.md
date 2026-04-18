@@ -27,7 +27,11 @@ Check [`defaults/main.yml`](defaults/main.yml) for the full list of supported op
 
 - **backward compatible**: even if a new Postgres version is available, the role will keep you on the Postgres version you had started with until you perform a major upgrade manually (see below)
 
+<!--
+TODO: support upgrading to a new major version
+
 - **upgrading between major Postgres versions**: invoking the playbook with a `--tags=upgrade-postgis` performs a dump, data move (`data` -> `data-auto-upgrade-backup`), rebuild, and dump import
+-->
 
 - **importing existing Postgres database dumps**: you can import plain-text (`.sql`), gzipped (`sql.gz`), zstandard-compressed (`.sql.zst`) dumps with the `--tags=import-postgis` tag
 

@@ -35,11 +35,12 @@
   tags:
     - import-generic-sqlite-db
 
-- block:
-    - when: postgis_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
-  tags:
-    - upgrade-postgis
+# TODO: support upgrading to a new major version
+# - block:
+#     - when: postgis_enabled | bool
+#       ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
+#   tags:
+#     - upgrade-postgis
 
 - block:
     - when: postgis_enabled | bool
