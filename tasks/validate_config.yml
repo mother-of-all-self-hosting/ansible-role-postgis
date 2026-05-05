@@ -16,6 +16,8 @@
     - { "old": "docker_postgis_container_image_registry_prefix", "new": "postgis_container_image_registry_prefix" }
     - { "old": "postgis_pgloader_container_image_name_prefix", "new": "postgis_pgloader_container_image_registry_prefix" }
     - { "old": "postgis_pgloader_docker_image", "new": "postgis_pgloader_container_image" }
+    - { "old": "postgis_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
+    - { "old": "postgis_pgloader_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
 - name: Fail if required PostGIS settings not defined
   ansible.builtin.fail:

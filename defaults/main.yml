@@ -221,8 +221,6 @@ postgis_container_image_latest: "{{ none if postgis_eligible_version_max is none
 # This variable is assigned at runtime. Overriding its value has no effect.
 postgis_container_image_to_use: '{{ postgis_container_image_latest }}'
 
-postgis_container_image_force_pull: "{{ postgis_container_image_to_use.endswith(':latest') }}"
-
 # Controls how long to wait for the container to stop gracefully before killing it.
 # Because `devture_systemd_docker_base_container_stop_grace_time_seconds` may be quite short and databases are more important to stop gracefully,
 # we default to at least 30 seconds.
@@ -480,7 +478,6 @@ postgis_pgloader_container_image_registry_prefix: "{{ 'localhost/' if postgis_pg
 postgis_pgloader_container_image_registry_prefix_upstream: "{{ postgis_pgloader_container_image_registry_prefix_upstream_default }}"
 postgis_pgloader_container_image_registry_prefix_upstream_default: "docker.io/"
 postgis_pgloader_container_image_tag: "3.6.2"
-postgis_pgloader_container_image_force_pull: "{{ postgis_pgloader_container_image.endswith(':latest') }}"
 
 # postgis_restart_necessary controls whether the Postgres systemd service
 # will be restarted (when true) or merely started (when false) by the
