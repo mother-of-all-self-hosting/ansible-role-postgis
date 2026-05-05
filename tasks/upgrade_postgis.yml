@@ -160,7 +160,7 @@
       {% if postgis_import_schemas_to_ignore | length > 0 %}
       grep -vE '{{ postgis_import_schemas_ignore_regex }}' |
       {% endif %}
-      psql -v ON_ERROR_STOP=1 -h {{ postgis_identifier }}"
+      psql -h {{ postgis_identifier }}"
   tags:
     - skip_ansible_lint
 
