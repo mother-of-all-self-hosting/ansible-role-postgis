@@ -45,7 +45,7 @@
             devture_playbook_runtime_messages_list | default([])
             +
             [
-              "NOTE: Your setup is on an old PostGIS version (" + postgis_detected_version_number | string + ") and can be upgraded to version " + postgis_available_upgrade_versions | max | string + ". You can upgrade using --tags=upgrade-postgis"
+              "NOTE: Your setup is on an old PostGIS version (" + postgis_detected_version_number | string + ") and can be upgraded to version " + postgis_available_upgrade_versions | max | string + ". To upgrade, re-run the playbook with `--tags=upgrade-postgis` on its own. Do not combine it with `setup-all`/`setup-postgis`/`install-all`/`install-postgis`. See your playbook's PostGIS maintenance documentation for details."
             ]
           }}
       when: "postgis_detected_existing and postgis_available_upgrade_versions | length > 0"
