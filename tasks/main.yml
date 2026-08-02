@@ -28,22 +28,26 @@
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_postgis.yml"
   tags:
     - import-postgis
+    - molecule-notest
 
 - block:
     - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/import_generic_sqlite_db.yml"
   tags:
     - import-generic-sqlite-db
+    - molecule-notest
 
 # TODO: support upgrading to a new major version
 # - block:
 #     - when: postgis_enabled | bool
 #       ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_postgis.yml"
 #   tags:
+#     - molecule-notest
 #     - upgrade-postgis
 
 - block:
     - when: postgis_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/run_vacuum.yml"
   tags:
+    - molecule-notest
     - run-postgis-vacuum

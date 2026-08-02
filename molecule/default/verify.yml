@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify PostGIS systemd service
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for PostGIS service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: postgis.service
+      register: postgis_service
+      until: postgis_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert PostGIS service is active
+      ansible.builtin.assert:
+        that: postgis_service.status.ActiveState == 'active'
+        fail_msg: "postgis.service not active ({{ postgis_service.status.ActiveState }})"
+        success_msg: "postgis.service is active"
+
+    - name: Retrieve PostGIS service log for debugging
+      when: postgis_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu postgis.service
+      changed_when: false
+
+    - name: Show PostGIS systemd service status summary
+      ansible.builtin.debug:
+        msg:
+          - "PostGIS systemd: {{ postgis_service.status.ActiveState }}"
