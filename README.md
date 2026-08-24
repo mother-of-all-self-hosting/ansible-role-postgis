@@ -41,7 +41,7 @@ TODO: support upgrading to a new major version
 
 - **helpful scripts**:
   - get a `psql` interactive terminal via the `/base_path/bin/cli` and `/base_path/bin/cli-non-interactive` scripts
-  - dump all databases using the `/base_path/bin/dump-all DIRECTORY_PATH` (which will dump to a `latest-dump.sql.gz` file there)
+  - dump all databases using the `/base_path/bin/dump-all DIRECTORY_PATH` (which will dump to a `latest-dump.sql.zst` file there)
   - the CLI scripts can prefer unix sockets when `postgis_cli_use_unix_socket_enabled` is true
 
 - **unix socket support**: optionally bind-mounts the Postgres unix socket directory to the host at `postgis_run_path` (see `postgis_container_unix_socket_enabled`)
