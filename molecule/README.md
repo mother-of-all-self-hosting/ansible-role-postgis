@@ -43,11 +43,17 @@ pip3 install -r ./molecule/requirements.txt
 
 ## Scenarios
 
-Currently there is one testing scenario available.
+Every scenario installs the role, then verifies it against the running server: it waits for a `SELECT 1` to be answered, checks that the `postgis` extension is registered, stores and reads back a geometry (`ST_Point`, `ST_AsText`, `ST_Distance`), asserts both the Postgres version and the PostGIS version against the image version in `defaults/main.yml`, and queries PostGIS from a managed database as the managed user over TCP.
 
 ### `default`
 
-Tests a standard PostGIS installation.
+Tests a standard PostGIS installation with the newest Postgres major that the role knows about.
+
+### `(Postgres major version number)`
+
+Tests a standard PostGIS installation pinned to that Postgres major, so that the PostGIS series paired with it is exercised too.
+
+Only the majors that have a scenario here are covered by CI. The remaining majors in `defaults/main.yml` are installable but untested, which is why their image versions are not automerged - see `.github/renovate.json`.
 
 ## Running
 
@@ -55,6 +61,9 @@ By default it is configured to run the scenarios on Ubuntu 26.04.
 
 ```bash
 molecule test --scenario-name default
+
+# A specific Postgres major
+molecule test --scenario-name 17
 ```
 
 You can utilize other distributions by setting one to the `MOLECULE_DISTRO` environment variable:

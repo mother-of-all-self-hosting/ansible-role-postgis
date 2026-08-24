@@ -13,7 +13,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: postgis-${MOLECULE_DISTRO:-ubuntu2604}-default
+  - name: postgis-${MOLECULE_DISTRO:-ubuntu2604}-16
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
@@ -36,6 +36,11 @@ provisioner:
         postgis_uid: 1000
         postgis_gid: 1000
         postgis_connection_password: password
+
+        # Pin the major this scenario is named after. Verification reads the
+        # image version for this major out of defaults/main.yml and asserts
+        # both halves of it against the running server.
+        postgis_allowed_versions_custom: [16]
 
         # Verification connects to this database as this user over TCP, which
         # is the only thing here that exercises managed database creation and
