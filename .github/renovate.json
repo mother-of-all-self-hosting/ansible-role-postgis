@@ -6,10 +6,18 @@
   "separateMajorMinor": true,
   "packageRules": [
     {
-      "description": "A new PostGIS major becomes a new variable, never a bump of an old one",
+      "description": "A new Postgres major becomes a new variable, never a bump of an old one. `major` here is the Postgres half of the compound tag",
       "matchPackageNames": ["postgis/postgis"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "PostGIS series bumps within a Postgres major are automerged via branch push, but only for the majors that molecule/ has a scenario for. Adding a major here without adding its scenario would automerge an untested image",
+      "matchPackageNames": ["postgis/postgis"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentValue": "/^(16|17|18)-/",
+      "automerge": true,
+      "automergeType": "branch"
     }
   ],
   "customManagers": [
@@ -23,7 +31,7 @@
       ],
       "depNameTemplate": "postgis/postgis",
       "datasourceTemplate": "docker",
-      "versioningTemplate": "semver-coerced"
+      "versioningTemplate": "regex:^(?<major>\\d+)(?:\\.\\d+)?-(?<minor>\\d+)\\.(?<patch>\\d+)$"
     }
   ]
 }
