@@ -1,23 +1,54 @@
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
 name: molecule
 
-on: [push, pull_request]  # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "LICENSES/**"
+      - "REUSE.toml"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE"
+      - "LICENSES/**"
+      - "REUSE.toml"
+  workflow_dispatch:
 
 jobs:
   molecule:
     name: Run Molecule scenario '${{ matrix.scenario }}' on ${{ matrix.distro }}
     runs-on: ubuntu-latest
 
+    # Same-repository pull requests already run via the push event;
+    # run pull_request jobs only for pull requests from forks.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name != github.repository
+
     strategy:
       matrix:
         distro:
           - ubuntu2604
           - debian13
+        # `default` covers the newest Postgres major that the role knows about.
+        # The numbered scenarios pin an older major each, so that a Renovate
+        # bump of that major's image version is exercised rather than merely
+        # syntax-checked. Majors without a scenario here are not covered - see
+        # the automerge rules in .github/renovate.json.
         scenario:
+          - "16"
+          - "17"
           - default
       fail-fast: false
 
@@ -39,15 +70,18 @@ jobs:
           cache: pip
           cache-dependency-path: postgis/molecule/requirements.txt
 
-      - name: Install Python dependencies
-        working-directory: postgis
-        run: pip install -r molecule/requirements.txt
-
+      # Every scenario has its own requirements.yml, so the cache key hashes all
+      # of them. Keying on one scenario's file would serve a stale cache to the
+      # others whenever their requirements diverge.
       - name: Cache Ansible collections
         uses: actions/cache@v6.1.0
         with:
           path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('postgis/molecule/default/requirements.yml') }}
+          key: ansible-collections-${{ hashFiles('postgis/molecule/*/requirements.yml') }}
+
+      - name: Install Python dependencies
+        working-directory: postgis
+        run: pip install -r molecule/requirements.txt
 
       - name: Run Molecule
         working-directory: postgis
