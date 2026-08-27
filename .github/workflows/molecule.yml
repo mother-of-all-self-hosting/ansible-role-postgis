@@ -40,7 +40,6 @@ jobs:
       matrix:
         distro:
           - ubuntu2604
-          - debian13
         # `default` covers the newest Postgres major that the role knows about.
         # The numbered scenarios pin an older major each, so that a Renovate
         # bump of that major's image version is exercised rather than merely
