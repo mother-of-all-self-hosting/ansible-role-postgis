@@ -209,7 +209,7 @@
 
     # A trailing dot on both sides keeps `18` from matching a hypothetical `180`,
     # while still letting `18` match `18.1` and `9.6` match `9.6.24`.
-    - name: Assert the running Postgres is the version the role asks for
+    - name: Assert the running Postgres is the version this role installs
       ansible.builtin.assert:
         that: (postgis_reported_postgres_version ~ '.').startswith(postgis_verify_expected_postgres_version ~ '.')
         fail_msg: >-
@@ -227,7 +227,7 @@
       ansible.builtin.set_fact:
         postgis_reported_postgis_version: "{{ postgis_lib_version.stdout | trim }}"
 
-    - name: Assert the running PostGIS is the version the role asks for
+    - name: Assert the running PostGIS is the version this role installs
       ansible.builtin.assert:
         that: (postgis_reported_postgis_version ~ '.').startswith(postgis_verify_expected_postgis_version ~ '.')
         fail_msg: >-
