@@ -257,7 +257,7 @@
         that: postgis_managed_db_version.stdout | trim == postgis_reported_postgis_version
         fail_msg: >-
           The {{ postgis_managed_databases_additional[0].name }} database reports PostGIS
-          {{ postgis_managed_db_version.stdout | trim | default('nothing') }},
+          {{ postgis_managed_db_version.stdout | trim | default('none') }},
           but the server runs {{ postgis_reported_postgis_version }}
         success_msg: "The managed database serves PostGIS {{ postgis_managed_db_version.stdout | trim }} to its own user"
 
