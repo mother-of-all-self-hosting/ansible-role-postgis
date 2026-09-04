@@ -261,12 +261,12 @@
           but the server runs {{ postgis_reported_postgis_version }}
         success_msg: "The managed database serves PostGIS {{ postgis_managed_db_version.stdout | trim }} to its own user"
 
-    - name: Show PostGIS verification summary
+    - name: Show the PostGIS verification summary
       ansible.builtin.debug:
         msg:
           - "PostGIS systemd: {{ postgis_service.status.ActiveState }}"
-          - "Image version under test: {{ postgis_verify_image_version }}"
-          - "Postgres version: {{ postgis_reported_postgres_version }}"
           - "PostGIS version: {{ postgis_reported_postgis_version }}"
-          - "Geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
-          - "Managed database PostGIS: {{ postgis_managed_db_version.stdout | trim }}"
+          - "PostGIS Image version under test: {{ postgis_verify_image_version }}"
+          - "PostGIS geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
+          - "PostGIS managed database: {{ postgis_managed_db_version.stdout | trim }}"
+          - "Postgres version: {{ postgis_reported_postgres_version }}"
