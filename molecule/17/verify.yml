@@ -206,10 +206,8 @@
     - name: Assert the running Postgres is the version this role installs
       ansible.builtin.assert:
         that: (postgis_reported_postgres_version ~ '.').startswith(postgis_verify_expected_postgres_version ~ '.')
-        fail_msg: >-
-          Postgres reports version {{ postgis_reported_postgres_version | default('none') }},
-          but {{ postgis_verify_image_version }} asks for {{ postgis_verify_expected_postgres_version }}
-        success_msg: "Postgres reports version {{ postgis_reported_postgres_version }}"
+        fail_msg: "Postgres reports {{ postgis_reported_postgres_version | default('none') }}, expected {{ postgis_verify_expected_postgres_version }}"
+        success_msg: "Postgres reports {{ postgis_reported_postgres_version }}"
 
     - name: Query the version reported by the running PostGIS
       ansible.builtin.command:
@@ -224,10 +222,8 @@
     - name: Assert the running PostGIS is the version this role installs
       ansible.builtin.assert:
         that: (postgis_reported_postgis_version ~ '.').startswith(postgis_verify_expected_postgis_version ~ '.')
-        fail_msg: >-
-          PostGIS reports version {{ postgis_reported_postgis_version | default('none') }},
-          but {{ postgis_verify_image_version }} asks for {{ postgis_verify_expected_postgis_version }}
-        success_msg: "PostGIS reports version {{ postgis_reported_postgis_version }}"
+        fail_msg: "PostGIS reports {{ postgis_reported_postgis_version | default('none') }}, expected {{ postgis_verify_expected_postgis_version }}"
+        success_msg: "PostGIS reports {{ postgis_reported_postgis_version }}"
 
     # The role creates the databases in postgis_managed_databases from the
     # template_postgis template, so a managed database is only usable by a
