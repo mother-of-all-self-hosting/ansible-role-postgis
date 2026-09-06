@@ -191,7 +191,7 @@
     # a real test of the image version that Renovate bumps: a bump producing an
     # unusable or mismatched image cannot pass here. Both halves of the compound
     # version matter, so both get checked.
-    - name: Query the version reported by the running Postgres
+    - name: Query the version of the running Postgres
       ansible.builtin.command:
         argv: "{{ postgis_verify_psql_argv + ['--command=SHOW server_version'] }}"
       register: postgis_server_version
@@ -209,7 +209,7 @@
         fail_msg: "Postgres reports {{ postgis_reported_postgres_version | default('none') }}, expected {{ postgis_verify_expected_postgres_version }}"
         success_msg: "Postgres reports {{ postgis_reported_postgres_version }}"
 
-    - name: Query the version reported by the running PostGIS
+    - name: Query the version of the running PostGIS
       ansible.builtin.command:
         argv: "{{ postgis_verify_psql_argv + ['--command=SELECT PostGIS_Lib_Version()'] }}"
       register: postgis_lib_version
