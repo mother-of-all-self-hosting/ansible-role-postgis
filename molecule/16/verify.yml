@@ -71,21 +71,27 @@
           - --username={{ postgis_defaults.postgis_connection_username }}
           - --dbname={{ postgis_defaults.postgis_db_name }}
 
-    - name: Wait for PostGIS service to become active (up to 180s)
-      ansible.builtin.systemd:
+    - name: Wait for the PostGIS systemd service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: postgis.service
       register: postgis_service
       until: postgis_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    - name: Assert PostGIS service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the PostGIS systemd service is active
       ansible.builtin.assert:
         that: postgis_service.status.ActiveState == 'active'
-        fail_msg: "postgis.service not active ({{ postgis_service.status.ActiveState }})"
+        fail_msg: "postgis.service is not active ({{ postgis_service.status.ActiveState }})"
         success_msg: "postgis.service is active"
 
-    - name: Retrieve PostGIS service log for debugging
+    - name: Retrieve the PostGIS systemd service log for debugging
       when: postgis_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu postgis.service
