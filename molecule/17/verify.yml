@@ -12,268 +12,268 @@
   tasks:
     - name: Verify that PostGIS works
       block:
-    # The role is not included in this playbook, so its defaults are not in
-    # scope. Reading defaults/main.yml directly ties the version assertion
-    # below.
-    - name: Load the role defaults
-      ansible.builtin.include_vars:
-        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
-        name: postgis_defaults
+        # The role is not included in this playbook, so its defaults are not in
+        # scope. Reading defaults/main.yml directly ties the version assertion
+        # below.
+        - name: Load the role defaults
+          ansible.builtin.include_vars:
+            file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+            name: postgis_defaults
 
-    # A per-major scenario pins its major through postgis_allowed_versions_custom;
-    # the default scenario pins nothing and gets whatever the role considers
-    # newest. Deriving the newest from the variable names rather than hardcoding
-    # it means a new major landing in defaults/main.yml is picked up here without
-    # an edit, and keeps this file identical across all scenarios.
-    - name: Determine the Postgres major version under test
-      ansible.builtin.set_fact:
-        postgis_verify_major: >-
-          {{
-            (postgis_allowed_versions_custom | max)
-            if (postgis_allowed_versions_custom | default([]) | length > 0)
-            else (
-              postgis_defaults.keys()
-              | select('match', '^postgis_container_image_v[0-9]+_version$')
-              | map('regex_replace', '^postgis_container_image_v', '')
-              | map('regex_replace', '_version$', '')
-              | map('int')
-              | max
-            )
-          }}
+        # A per-major scenario pins its major through postgis_allowed_versions_custom;
+        # the default scenario pins nothing and gets whatever the role considers
+        # newest. Deriving the newest from the variable names rather than hardcoding
+        # it means a new major landing in defaults/main.yml is picked up here without
+        # an edit, and keeps this file identical across all scenarios.
+        - name: Determine the Postgres major version under test
+          ansible.builtin.set_fact:
+            postgis_verify_major: >-
+              {{
+                (postgis_allowed_versions_custom | max)
+                if (postgis_allowed_versions_custom | default([]) | length > 0)
+                else (
+                  postgis_defaults.keys()
+                  | select('match', '^postgis_container_image_v[0-9]+_version$')
+                  | map('regex_replace', '^postgis_container_image_v', '')
+                  | map('regex_replace', '_version$', '')
+                  | map('int')
+                  | max
+                )
+              }}
 
-    # The image version is a compound `<Postgres major>-<PostGIS series>` value,
-    # for example `18-3.6`. Both halves get asserted against the running server
-    # below, which is what turns a bump of this variable into a tested bump.
-    - name: Determine the container image version under test
-      ansible.builtin.set_fact:
-        postgis_verify_image_version: "{{ postgis_defaults['postgis_container_image_v' ~ postgis_verify_major ~ '_version'] }}"
+        # The image version is a compound `<Postgres major>-<PostGIS series>` value,
+        # for example `18-3.6`. Both halves get asserted against the running server
+        # below, which is what turns a bump of this variable into a tested bump.
+        - name: Determine the container image version under test
+          ansible.builtin.set_fact:
+            postgis_verify_image_version: "{{ postgis_defaults['postgis_container_image_v' ~ postgis_verify_major ~ '_version'] }}"
 
-    - name: Determine the expected Postgres and PostGIS versions
-      ansible.builtin.set_fact:
-        postgis_verify_expected_postgres_version: "{{ postgis_verify_image_version.split('-')[0] }}"
-        postgis_verify_expected_postgis_version: "{{ postgis_verify_image_version.split('-')[1] }}"
+        - name: Determine the expected Postgres and PostGIS versions
+          ansible.builtin.set_fact:
+            postgis_verify_expected_postgres_version: "{{ postgis_verify_image_version.split('-')[0] }}"
+            postgis_verify_expected_postgis_version: "{{ postgis_verify_image_version.split('-')[1] }}"
 
-    # Every query below runs through the psql binary of the server container
-    # itself. community.docker is deliberately avoided throughout this playbook:
-    # the linting environment in CI has no collections installed.
-    #
-    # argv (rather than a shell command line) keeps the SQL text out of reach of
-    # shell quoting entirely.
-    - name: Compose the psql command prefix
-      ansible.builtin.set_fact:
-        postgis_verify_psql_argv:
-          - docker
-          - exec
-          - "{{ postgis_defaults.postgis_identifier }}"
-          - psql
-          - --no-psqlrc
-          - --tuples-only
-          - --no-align
-          - --set=ON_ERROR_STOP=1
-          - --username={{ postgis_defaults.postgis_connection_username }}
-          - --dbname={{ postgis_defaults.postgis_db_name }}
+        # Every query below runs through the psql binary of the server container
+        # itself. community.docker is deliberately avoided throughout this playbook:
+        # the linting environment in CI has no collections installed.
+        #
+        # argv (rather than a shell command line) keeps the SQL text out of reach of
+        # shell quoting entirely.
+        - name: Compose the psql command prefix
+          ansible.builtin.set_fact:
+            postgis_verify_psql_argv:
+              - docker
+              - exec
+              - "{{ postgis_defaults.postgis_identifier }}"
+              - psql
+              - --no-psqlrc
+              - --tuples-only
+              - --no-align
+              - --set=ON_ERROR_STOP=1
+              - --username={{ postgis_defaults.postgis_connection_username }}
+              - --dbname={{ postgis_defaults.postgis_db_name }}
 
-    - name: Wait for the PostGIS systemd service to become active (up to 180s)
-      ansible.builtin.systemd_service:
-        name: postgis.service
-      register: postgis_service
-      until: postgis_service.status.ActiveState == 'active'
-      retries: 36
-      delay: 5
-      # So that giving up is reported by the assertion below rather than as a
-      # wall of systemd unit properties.
-      failed_when: false
+        - name: Wait for the PostGIS systemd service to become active (up to 180s)
+          ansible.builtin.systemd_service:
+            name: postgis.service
+          register: postgis_service
+          until: postgis_service.status.ActiveState == 'active'
+          retries: 36
+          delay: 5
+          # So that giving up is reported by the assertion below rather than as a
+          # wall of systemd unit properties.
+          failed_when: false
 
-    # `Restart=always` in the systemd unit means that even a container which crashes
-    # and gets restarted reads as active here, so this is a precondition rather than
-    # a result.
-    - name: Assert the PostGIS systemd service is active
-      ansible.builtin.assert:
-        that: postgis_service.status.ActiveState == 'active'
-        fail_msg: "postgis.service is not active ({{ postgis_service.status.ActiveState }})"
-        success_msg: "postgis.service is active"
+        # `Restart=always` in the systemd unit means that even a container which crashes
+        # and gets restarted reads as active here, so this is a precondition rather than
+        # a result.
+        - name: Assert the PostGIS systemd service is active
+          ansible.builtin.assert:
+            that: postgis_service.status.ActiveState == 'active'
+            fail_msg: "postgis.service is not active ({{ postgis_service.status.ActiveState }})"
+            success_msg: "postgis.service is active"
 
-    - name: Retrieve the PostGIS systemd service log for debugging
-      when: postgis_debug_service_enabled | bool
-      ansible.builtin.command:
-        cmd: journalctl --no-pager --output=cat --unit=postgis.service
-      changed_when: false
+        - name: Retrieve the PostGIS systemd service log for debugging
+          when: postgis_debug_service_enabled | bool
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=postgis.service
+          changed_when: false
 
-    # A systemd unit reaching "active" only means that `docker start` has not
-    # exited yet. A query the server answers itself is the first thing here that
-    # proves a usable database rather than merely a running process.
-    - name: Wait for Postgres to answer a trivial query (up to 120s)
-      ansible.builtin.command:
-        argv: "{{ postgis_verify_psql_argv + ['--command=SELECT 1'] }}"
-      register: postgis_select_one
-      changed_when: false
-      failed_when: false
-      until: postgis_select_one.rc == 0 and '1' in postgis_select_one.stdout
-      retries: 24
-      delay: 5
+        # A systemd unit reaching "active" only means that `docker start` has not
+        # exited yet. A query the server answers itself is the first thing here that
+        # proves a usable database rather than merely a running process.
+        - name: Wait for Postgres to answer a trivial query (up to 120s)
+          ansible.builtin.command:
+            argv: "{{ postgis_verify_psql_argv + ['--command=SELECT 1'] }}"
+          register: postgis_select_one
+          changed_when: false
+          failed_when: false
+          until: postgis_select_one.rc == 0 and '1' in postgis_select_one.stdout
+          retries: 24
+          delay: 5
 
-    - name: Assert Postgres answers a trivial query
-      ansible.builtin.assert:
-        that: postgis_select_one.rc == 0 and '1' in postgis_select_one.stdout
-        fail_msg: >-
-          SELECT 1 did not return 1:
-          {{ postgis_select_one.stdout | default('no output') }} {{ postgis_select_one.stderr | default('') }}
-        success_msg: "Postgres answers SELECT 1"
+        - name: Assert Postgres answers a trivial query
+          ansible.builtin.assert:
+            that: postgis_select_one.rc == 0 and '1' in postgis_select_one.stdout
+            fail_msg: >-
+              SELECT 1 did not return 1:
+              {{ postgis_select_one.stdout | default('no output') }} {{ postgis_select_one.stderr | default('') }}
+            success_msg: "Postgres answers SELECT 1"
 
-    # This is what separates the role from ansible-role-postgres: the image is
-    # expected to register the extension during initdb, so a plain Postgres
-    # image slipping into postgis_container_image_name would be caught here
-    # rather than passing as a healthy database.
-    - name: Query the PostGIS extension registered in the main database
-      ansible.builtin.command:
-        argv: >-
-          {{
-            postgis_verify_psql_argv
-            + ["--command=SELECT extversion FROM pg_extension WHERE extname = 'postgis'"]
-          }}
-      register: postgis_extension
-      changed_when: false
+        # This is what separates the role from ansible-role-postgres: the image is
+        # expected to register the extension during initdb, so a plain Postgres
+        # image slipping into postgis_container_image_name would be caught here
+        # rather than passing as a healthy database.
+        - name: Query the PostGIS extension registered in the main database
+          ansible.builtin.command:
+            argv: >-
+              {{
+                postgis_verify_psql_argv
+                + ["--command=SELECT extversion FROM pg_extension WHERE extname = 'postgis'"]
+              }}
+          register: postgis_extension
+          changed_when: false
 
-    - name: Assert the PostGIS extension is registered in the main database
-      ansible.builtin.assert:
-        that: postgis_extension.stdout | trim | length > 0
-        fail_msg: "The postgis extension is not registered in the {{ postgis_defaults.postgis_db_name }} database"
-        success_msg: "The postgis extension is registered as {{ postgis_extension.stdout | trim }}"
+        - name: Assert the PostGIS extension is registered in the main database
+          ansible.builtin.assert:
+            that: postgis_extension.stdout | trim | length > 0
+            fail_msg: "The postgis extension is not registered in the {{ postgis_defaults.postgis_db_name }} database"
+            success_msg: "The postgis extension is registered as {{ postgis_extension.stdout | trim }}"
 
-    # A geometry stored and read back through the spatial types and functions.
-    # SELECT 1 and an extension row only prove that PostGIS is installed; this
-    # proves the GIS stack actually computes.
-    - name: Store a geometry through PostGIS
-      ansible.builtin.command:
-        argv: >-
-          {{
-            postgis_verify_psql_argv
-            + [
-              '--command='
-              ~ 'DROP TABLE IF EXISTS molecule_geometry;'
-              ~ ' CREATE TABLE molecule_geometry (id integer PRIMARY KEY, geom geometry(Point, 4326));'
-              ~ ' INSERT INTO molecule_geometry (id, geom) VALUES'
-              ~ ' (1, ST_SetSRID(ST_Point(0, 0), 4326)),'
-              ~ ' (2, ST_SetSRID(ST_Point(3, 4), 4326));'
-            ]
-          }}
-      changed_when: true
+        # A geometry stored and read back through the spatial types and functions.
+        # SELECT 1 and an extension row only prove that PostGIS is installed; this
+        # proves the GIS stack actually computes.
+        - name: Store a geometry through PostGIS
+          ansible.builtin.command:
+            argv: >-
+              {{
+                postgis_verify_psql_argv
+                + [
+                  '--command='
+                  ~ 'DROP TABLE IF EXISTS molecule_geometry;'
+                  ~ ' CREATE TABLE molecule_geometry (id integer PRIMARY KEY, geom geometry(Point, 4326));'
+                  ~ ' INSERT INTO molecule_geometry (id, geom) VALUES'
+                  ~ ' (1, ST_SetSRID(ST_Point(0, 0), 4326)),'
+                  ~ ' (2, ST_SetSRID(ST_Point(3, 4), 4326));'
+                ]
+              }}
+          changed_when: true
 
-    - name: Read the geometry back as text
-      ansible.builtin.command:
-        argv: >-
-          {{
-            postgis_verify_psql_argv
-            + ['--command=SELECT ST_AsText(geom) FROM molecule_geometry WHERE id = 2']
-          }}
-      register: postgis_geometry_astext
-      changed_when: false
+        - name: Read the geometry back as text
+          ansible.builtin.command:
+            argv: >-
+              {{
+                postgis_verify_psql_argv
+                + ['--command=SELECT ST_AsText(geom) FROM molecule_geometry WHERE id = 2']
+              }}
+          register: postgis_geometry_astext
+          changed_when: false
 
-    - name: Measure the distance between the two stored geometries
-      ansible.builtin.command:
-        argv: >-
-          {{
-            postgis_verify_psql_argv
-            + [
-              '--command=SELECT ST_Distance(a.geom, b.geom) FROM molecule_geometry AS a,'
-              ~ ' molecule_geometry AS b WHERE a.id = 1 AND b.id = 2'
-            ]
-          }}
-      register: postgis_geometry_distance
-      changed_when: false
+        - name: Measure the distance between the two stored geometries
+          ansible.builtin.command:
+            argv: >-
+              {{
+                postgis_verify_psql_argv
+                + [
+                  '--command=SELECT ST_Distance(a.geom, b.geom) FROM molecule_geometry AS a,'
+                  ~ ' molecule_geometry AS b WHERE a.id = 1 AND b.id = 2'
+                ]
+              }}
+          register: postgis_geometry_distance
+          changed_when: false
 
-    # (0,0) to (3,4) is a 3-4-5 triangle, so the answer is exactly 5 and depends
-    # neither on the PostGIS series nor on floating point tolerance.
-    - name: Assert the geometry round-trip works
-      ansible.builtin.assert:
-        that:
-          - postgis_geometry_astext.stdout | trim == 'POINT(3 4)'
-          - postgis_geometry_distance.stdout | trim | float == 5.0
-        fail_msg: >-
-          The geometry round-trip failed
-          (ST_AsText: {{ postgis_geometry_astext.stdout | trim | default('no output') }},
-          ST_Distance: {{ postgis_geometry_distance.stdout | trim | default('no output') }})
-        success_msg: "A geometry round-trip works (ST_AsText and ST_Distance agree)"
+        # (0,0) to (3,4) is a 3-4-5 triangle, so the answer is exactly 5 and depends
+        # neither on the PostGIS series nor on floating point tolerance.
+        - name: Assert the geometry round-trip works
+          ansible.builtin.assert:
+            that:
+              - postgis_geometry_astext.stdout | trim == 'POINT(3 4)'
+              - postgis_geometry_distance.stdout | trim | float == 5.0
+            fail_msg: >-
+              The geometry round-trip failed
+              (ST_AsText: {{ postgis_geometry_astext.stdout | trim | default('no output') }},
+              ST_Distance: {{ postgis_geometry_distance.stdout | trim | default('no output') }})
+            success_msg: "A geometry round-trip works (ST_AsText and ST_Distance agree)"
 
-    # Tying the running versions to defaults/main.yml is what makes this scenario
-    # a real test of the image version that Renovate bumps: a bump producing an
-    # unusable or mismatched image cannot pass here. Both halves of the compound
-    # version matter, so both get checked.
-    - name: Query the version of the running Postgres
-      ansible.builtin.command:
-        argv: "{{ postgis_verify_psql_argv + ['--command=SHOW server_version'] }}"
-      register: postgis_server_version
-      changed_when: false
+        # Tying the running versions to defaults/main.yml is what makes this scenario
+        # a real test of the image version that Renovate bumps: a bump producing an
+        # unusable or mismatched image cannot pass here. Both halves of the compound
+        # version matter, so both get checked.
+        - name: Query the version of the running Postgres
+          ansible.builtin.command:
+            argv: "{{ postgis_verify_psql_argv + ['--command=SHOW server_version'] }}"
+          register: postgis_server_version
+          changed_when: false
 
-    - name: Determine the version reported by the running Postgres
-      ansible.builtin.set_fact:
-        postgis_reported_postgres_version: "{{ postgis_server_version.stdout | trim | split(' ') | first }}"
+        - name: Determine the version reported by the running Postgres
+          ansible.builtin.set_fact:
+            postgis_reported_postgres_version: "{{ postgis_server_version.stdout | trim | split(' ') | first }}"
 
-    # A trailing dot on both sides keeps `18` from matching a hypothetical `180`,
-    # while still letting `18` match `18.1` and `9.6` match `9.6.24`.
-    - name: Assert the running Postgres is the version this role installs
-      ansible.builtin.assert:
-        that: (postgis_reported_postgres_version ~ '.').startswith(postgis_verify_expected_postgres_version ~ '.')
-        fail_msg: "Postgres reports {{ postgis_reported_postgres_version | default('none') }}, expected {{ postgis_verify_expected_postgres_version }}"
-        success_msg: "Postgres reports {{ postgis_reported_postgres_version }}"
+        # A trailing dot on both sides keeps `18` from matching a hypothetical `180`,
+        # while still letting `18` match `18.1` and `9.6` match `9.6.24`.
+        - name: Assert the running Postgres is the version this role installs
+          ansible.builtin.assert:
+            that: (postgis_reported_postgres_version ~ '.').startswith(postgis_verify_expected_postgres_version ~ '.')
+            fail_msg: "Postgres reports {{ postgis_reported_postgres_version | default('none') }}, expected {{ postgis_verify_expected_postgres_version }}"
+            success_msg: "Postgres reports {{ postgis_reported_postgres_version }}"
 
-    - name: Query the version of the running PostGIS
-      ansible.builtin.command:
-        argv: "{{ postgis_verify_psql_argv + ['--command=SELECT PostGIS_Lib_Version()'] }}"
-      register: postgis_lib_version
-      changed_when: false
+        - name: Query the version of the running PostGIS
+          ansible.builtin.command:
+            argv: "{{ postgis_verify_psql_argv + ['--command=SELECT PostGIS_Lib_Version()'] }}"
+          register: postgis_lib_version
+          changed_when: false
 
-    - name: Determine the version reported by the running PostGIS
-      ansible.builtin.set_fact:
-        postgis_reported_postgis_version: "{{ postgis_lib_version.stdout | trim }}"
+        - name: Determine the version reported by the running PostGIS
+          ansible.builtin.set_fact:
+            postgis_reported_postgis_version: "{{ postgis_lib_version.stdout | trim }}"
 
-    - name: Assert the running PostGIS is the version this role installs
-      ansible.builtin.assert:
-        that: (postgis_reported_postgis_version ~ '.').startswith(postgis_verify_expected_postgis_version ~ '.')
-        fail_msg: "PostGIS reports {{ postgis_reported_postgis_version | default('none') }}, expected {{ postgis_verify_expected_postgis_version }}"
-        success_msg: "PostGIS reports {{ postgis_reported_postgis_version }}"
+        - name: Assert the running PostGIS is the version this role installs
+          ansible.builtin.assert:
+            that: (postgis_reported_postgis_version ~ '.').startswith(postgis_verify_expected_postgis_version ~ '.')
+            fail_msg: "PostGIS reports {{ postgis_reported_postgis_version | default('none') }}, expected {{ postgis_verify_expected_postgis_version }}"
+            success_msg: "PostGIS reports {{ postgis_reported_postgis_version }}"
 
-    # The role creates the databases in postgis_managed_databases from the
-    # template_postgis template, so a managed database is only usable by a
-    # consumer of this role if it inherited the extension. Connecting over TCP as
-    # the managed user also exercises the role/password half of that setup, which
-    # nothing above touches.
-    - name: Query PostGIS from a managed database as the managed user
-      ansible.builtin.command:
-        argv: >-
-          {{
-            [
-              'docker', 'exec',
-              '--env', 'PGPASSWORD=' ~ postgis_managed_databases_additional[0].password,
-              postgis_defaults.postgis_identifier,
-              'psql', '--no-psqlrc', '--tuples-only', '--no-align', '--set=ON_ERROR_STOP=1',
-              '--host=127.0.0.1',
-              '--username=' ~ postgis_managed_databases_additional[0].username,
-              '--dbname=' ~ postgis_managed_databases_additional[0].name,
-              '--command=SELECT PostGIS_Lib_Version()'
-            ]
-          }}
-      register: postgis_managed_db_version
-      changed_when: false
+        # The role creates the databases in postgis_managed_databases from the
+        # template_postgis template, so a managed database is only usable by a
+        # consumer of this role if it inherited the extension. Connecting over TCP as
+        # the managed user also exercises the role/password half of that setup, which
+        # nothing above touches.
+        - name: Query PostGIS from a managed database as the managed user
+          ansible.builtin.command:
+            argv: >-
+              {{
+                [
+                  'docker', 'exec',
+                  '--env', 'PGPASSWORD=' ~ postgis_managed_databases_additional[0].password,
+                  postgis_defaults.postgis_identifier,
+                  'psql', '--no-psqlrc', '--tuples-only', '--no-align', '--set=ON_ERROR_STOP=1',
+                  '--host=127.0.0.1',
+                  '--username=' ~ postgis_managed_databases_additional[0].username,
+                  '--dbname=' ~ postgis_managed_databases_additional[0].name,
+                  '--command=SELECT PostGIS_Lib_Version()'
+                ]
+              }}
+          register: postgis_managed_db_version
+          changed_when: false
 
-    - name: Assert the managed database inherited a working PostGIS
-      ansible.builtin.assert:
-        that: postgis_managed_db_version.stdout | trim == postgis_reported_postgis_version
-        fail_msg: >-
-          The {{ postgis_managed_databases_additional[0].name }} database reports PostGIS
-          {{ postgis_managed_db_version.stdout | trim | default('none') }},
-          but the server runs {{ postgis_reported_postgis_version }}
-        success_msg: "The managed database serves PostGIS {{ postgis_managed_db_version.stdout | trim }} to its own user"
+        - name: Assert the managed database inherited a working PostGIS
+          ansible.builtin.assert:
+            that: postgis_managed_db_version.stdout | trim == postgis_reported_postgis_version
+            fail_msg: >-
+              The {{ postgis_managed_databases_additional[0].name }} database reports PostGIS
+              {{ postgis_managed_db_version.stdout | trim | default('none') }},
+              but the server runs {{ postgis_reported_postgis_version }}
+            success_msg: "The managed database serves PostGIS {{ postgis_managed_db_version.stdout | trim }} to its own user"
 
-    - name: Show the PostGIS verification summary
-      ansible.builtin.debug:
-        msg:
-          - "PostGIS systemd: {{ postgis_service.status.ActiveState }}"
-          - "PostGIS version: {{ postgis_reported_postgis_version }}"
-          - "PostGIS Image version under test: {{ postgis_verify_image_version }}"
-          - "PostGIS geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
-          - "PostGIS managed database: {{ postgis_managed_db_version.stdout | trim }}"
-          - "Postgres version: {{ postgis_reported_postgres_version }}"
+        - name: Show the PostGIS verification summary
+          ansible.builtin.debug:
+            msg:
+              - "PostGIS systemd: {{ postgis_service.status.ActiveState }}"
+              - "PostGIS version: {{ postgis_reported_postgis_version }}"
+              - "PostGIS Image version under test: {{ postgis_verify_image_version }}"
+              - "PostGIS geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
+              - "PostGIS managed database: {{ postgis_managed_db_version.stdout | trim }}"
+              - "Postgres version: {{ postgis_reported_postgres_version }}"
 
       rescue:
         # Whatever went wrong, the reason is almost always in the systemd service log.
