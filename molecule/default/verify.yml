@@ -10,6 +10,8 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Verify that PostGIS works
+      block:
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -272,3 +274,19 @@
           - "PostGIS geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
           - "PostGIS managed database: {{ postgis_managed_db_version.stdout | trim }}"
           - "Postgres version: {{ postgis_reported_postgres_version }}"
+
+      rescue:
+        # Whatever went wrong, the reason is almost always in the systemd service log.
+        - name: Retrieve the PostGIS systemd service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=postgis.service
+          register: postgis_service_log
+          changed_when: false
+
+        - name: Show the PostGIS systemd service log
+          ansible.builtin.debug:
+            var: postgis_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "PostGIS verification failed. The systemd service log is printed above."
