@@ -9,6 +9,11 @@
   hosts: all
   become: true
   gather_facts: false
+
+  vars:
+    postgis_verify_units:
+      - postgis.service
+
   tasks:
     - name: Verify that PostGIS works
       block:
@@ -73,13 +78,14 @@
               - --username={{ postgis_defaults.postgis_connection_username }}
               - --dbname={{ postgis_defaults.postgis_db_name }}
 
-        - name: Wait for the PostGIS systemd service to become active (up to 180s)
+        - name: Wait for the PostGIS systemd services to become active (up to 180s each)
           ansible.builtin.systemd_service:
-            name: postgis.service
-          register: postgis_service
-          until: postgis_service.status.ActiveState == 'active'
+            name: "{{ item }}"
+          register: postgis_services
+          until: postgis_services.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          loop: "{{ postgis_verify_units }}"
           # So that giving up is reported by the assertion below rather than as a
           # wall of systemd unit properties.
           failed_when: false
@@ -87,17 +93,20 @@
         # `Restart=always` in the systemd unit means that even a container which crashes
         # and gets restarted reads as active here, so this is a precondition rather than
         # a result.
-        - name: Assert the PostGIS systemd service is active
+        - name: Assert the PostGIS systemd services are active
           ansible.builtin.assert:
-            that: postgis_service.status.ActiveState == 'active'
-            fail_msg: "postgis.service is not active ({{ postgis_service.status.ActiveState }})"
-            success_msg: "postgis.service is active"
+            that: postgis_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+            fail_msg: >-
+              Not every service is active:
+              {{ dict(postgis_verify_units | zip(postgis_services.results | map(attribute='status.ActiveState'))) }}
+            success_msg: "Every systemd service is active"
 
-        - name: Retrieve the PostGIS systemd service log for debugging
+        - name: Retrieve the PostGIS systemd services log for debugging
           when: postgis_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl --no-pager --output=cat --unit=postgis.service
+            cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
           changed_when: false
+          loop: "{{ postgis_verify_units }}"
 
         # A systemd unit reaching "active" only means that `docker start` has not
         # exited yet. A query the server answers itself is the first thing here that
@@ -268,7 +277,7 @@
         - name: Show the PostGIS verification summary
           ansible.builtin.debug:
             msg:
-              - "PostGIS systemd: {{ postgis_service.status.ActiveState }}"
+              - "PostGIS systemd: {% for unit, state in postgis_verify_units | zip(postgis_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "PostGIS version: {{ postgis_reported_postgis_version }}"
               - "PostGIS Image version under test: {{ postgis_verify_image_version }}"
               - "PostGIS geometry round-trip: {{ postgis_geometry_astext.stdout | trim }} at distance {{ postgis_geometry_distance.stdout | trim }}"
