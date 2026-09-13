@@ -31,6 +31,7 @@ provisioner:
       all:
         # Helper variables
         postgis_debug_service_enabled: false
+        postgis_restarts_check_enabled: true
 
         # Variables for PostGIS
         postgis_uid: 1000
