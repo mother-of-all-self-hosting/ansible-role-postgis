@@ -10,6 +10,10 @@
       Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
   when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
   with_items:
+    - { "old": "postgis_postgis_process_extra_arguments_default", "new": "postgis_process_extra_arguments_default" }
+    - { "old": "postgis_postgis_process_extra_arguments_unix_socket", "new": "postgis_process_extra_arguments_unix_socket" }
+    - { "old": "postgis_postgis_process_extra_arguments_auto", "new": "postgis_process_extra_arguments_auto" }
+    - { "old": "postgis_postgis_process_extra_arguments_custom", "new": "postgis_process_extra_arguments_custom" }
     - { "old": "postgis_vacuum_database", "new": "<superseded by postgis_vacuum_default_databases_list>" }
     - { "old": "postgis_additional_databases", "new": "postgis_managed_databases" }
     - { "old": "postgis_vacuum_command", "new": "<superseded by postgis_vacuum_presets and postgis_vacuum_preset, or postgis_vacuum_query>" }

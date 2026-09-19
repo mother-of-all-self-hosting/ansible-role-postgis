@@ -298,7 +298,10 @@ postgis_container_extra_arguments: "{{ postgis_container_extra_arguments_auto + 
 postgis_container_extra_arguments_auto: []
 postgis_container_extra_arguments_custom: []
 
-postgis_postgis_process_extra_arguments_default: [
+# A list of extra arguments to pass to the process inside the container
+# Example: ['--SOME_ARGUMENT']
+postgis_process_extra_arguments: "{{ postgis_process_extra_arguments_default + postgis_process_extra_arguments_unix_socket + postgis_process_extra_arguments_auto + postgis_process_extra_arguments_custom }}"
+postgis_process_extra_arguments_default: [
   "-c 'max_connections={{ postgis_max_connections|int }}'",
   "-c 'shared_buffers={{ (postgis_shared_buffers|int/1024)|int }}MB'",
   "-c 'effective_cache_size={{ (postgis_effective_cache_size|int/1024)|int }}MB'",
@@ -317,15 +320,11 @@ postgis_postgis_process_extra_arguments_default: [
   "-c 'max_parallel_workers_per_gather={{ postgis_max_parallel_workers_per_gather|int }}'",
   "-c 'max_parallel_maintenance_workers={{ postgis_max_parallel_maintenance_workers|int }}'"
 ]
-postgis_postgis_process_extra_arguments_unix_socket: "{{ [\"-c 'unix_socket_directories=\" ~ postgis_run_path_in_container ~ \"'\"] if postgis_container_unix_socket_enabled else [] }}"
-# postgis_postgis_process_extra_arguments_auto is for use by the playbook that wraps this role.
-# For your own custom definitions, see postgis_postgis_process_extra_arguments_custom.
-postgis_postgis_process_extra_arguments_auto: []
-postgis_postgis_process_extra_arguments_custom: []
-
-# A list of extra arguments to pass to the postgres process
-# e.g. "-c 'max_connections=200'"
-postgis_process_extra_arguments: "{{ postgis_postgis_process_extra_arguments_default + postgis_postgis_process_extra_arguments_unix_socket + postgis_postgis_process_extra_arguments_auto + postgis_postgis_process_extra_arguments_custom }}"
+postgis_process_extra_arguments_unix_socket: "{{ [\"-c 'unix_socket_directories=\" ~ postgis_run_path_in_container ~ \"'\"] if postgis_container_unix_socket_enabled else [] }}"
+# postgis_process_extra_arguments_auto is for use by the playbook that wraps this role.
+# For your own custom definitions, see postgis_process_extra_arguments_custom.
+postgis_process_extra_arguments_auto: []
+postgis_process_extra_arguments_custom: []
 
 # Controls whether the Postgres container exposes a port (tcp/5432 in the
 # container) that can be used to access the database from outside the container (e.g. with psql)
