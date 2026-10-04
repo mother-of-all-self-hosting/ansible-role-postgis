@@ -339,3 +339,6 @@
         - name: Fail because verification did not pass
           ansible.builtin.fail:
             msg: "PostGIS verification failed. The systemd service log is printed above."
+
+- name: Verify PostGIS managed databases
+  ansible.builtin.import_playbook: verify_managed_databases.yml

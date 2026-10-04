@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Query the owner of the managed database
+  ansible.builtin.command:
+    cmd: >-
+      /postgis/bin/cli-non-interactive -tAc
+      "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = '{{ postgis_verify_managed_db.name }}'"
+  register: postgis_verify_managed_db_owner
+  changed_when: false
+
+- name: Query the extensions in the managed database
+  ansible.builtin.command:
+    cmd: >-
+      /postgis/bin/cli-non-interactive -d {{ postgis_verify_managed_db.name }} -tAc
+      "SELECT extname FROM pg_extension WHERE extname = 'pg_trgm'"
+  register: postgis_verify_managed_db_extensions
+  changed_when: false
+
+- name: Determine the Postgres container image
+  ansible.builtin.command:
+    cmd: docker container inspect postgis --format '{% raw %}{{.Config.Image}}{% endraw %}'
+  register: postgis_verify_container_image
+  changed_when: false
+
+# Over the container network like a service would, so that password authentication
+# applies (connections from inside the Postgres container itself may be trusted).
+- name: Log in to the managed database as its user
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network=postgis
+      - --env=PGPASSWORD={{ postgis_verify_managed_db.password }}
+      - "{{ postgis_verify_container_image.stdout }}"
+      - psql
+      - --host=postgis
+      - --username={{ postgis_verify_managed_db.username }}
+      - --dbname={{ postgis_verify_managed_db.name }}
+      - -tAc
+      - SELECT current_user
+  register: postgis_verify_managed_db_login
+  changed_when: false
+  failed_when: false
+
+- name: Assert the managed database is prepared
+  ansible.builtin.assert:
+    that:
+      - postgis_verify_managed_db_owner.stdout == postgis_verify_managed_db.username
+      - postgis_verify_managed_db_extensions.stdout == 'pg_trgm'
+      - postgis_verify_managed_db_login.rc == 0
+      - postgis_verify_managed_db_login.stdout == postgis_verify_managed_db.username
+    fail_msg: >-
+      The managed database `{{ postgis_verify_managed_db.name }}` is not prepared as expected.
+      Owner: `{{ postgis_verify_managed_db_owner.stdout }}`,
+      pg_trgm extension: `{{ postgis_verify_managed_db_extensions.stdout }}`,
+      login as `{{ postgis_verify_managed_db.username }}` (rc={{ postgis_verify_managed_db_login.rc }}):
+      `{{ postgis_verify_managed_db_login.stdout }}{{ postgis_verify_managed_db_login.stderr }}`
+    success_msg: >-
+      `{{ postgis_verify_managed_db.name }}` is owned by `{{ postgis_verify_managed_db.username }}`,
+      has the pg_trgm extension, and its user can log in with its password
