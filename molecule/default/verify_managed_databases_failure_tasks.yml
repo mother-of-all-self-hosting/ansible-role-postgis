@@ -31,19 +31,19 @@
     that:
       - postgis_verify_failure_result is not none
       - postgis_verify_failure_expected_output in (postgis_verify_failure_result.msg | default(''))
-      - postgis_verify_managed_db.password not in (postgis_verify_failure_result | to_json)
+      - postgis_verify_managed_dbs | map(attribute='password') | select('in', postgis_verify_failure_result | to_json) | list == []
       - not postgis_verify_failure_sql_file.stat.exists
     fail_msg: >-
       Preparing the managed databases ({{ postgis_verify_failure_case }})
       {% if postgis_verify_failure_result is none %}
       succeeded, but it should have failed.
       {% else %}
-      did not fail as expected: the error should contain `{{ postgis_verify_failure_expected_output }}` but no password,
+      did not fail as expected: the error should contain `{{ postgis_verify_failure_expected_output }}` but no passwords,
       and the initialization SQL file (which contains passwords) should be deleted
       (left behind: {{ postgis_verify_failure_sql_file.stat.exists }}).
       Error:
-      {{ (postgis_verify_failure_result.msg | default('')) | replace(postgis_verify_managed_db.password, '<password>') }}
+      {{ (postgis_verify_failure_result.msg | default('')) | regex_replace(postgis_verify_managed_dbs | map(attribute='password') | map('regex_escape') | join('|'), '<password>') }}
       {% endif %}
     success_msg: >-
-      Preparing the managed databases ({{ postgis_verify_failure_case }}) failed, explaining why without leaking the password:
+      Preparing the managed databases ({{ postgis_verify_failure_case }}) failed, explaining why without leaking passwords:
       {{ postgis_verify_failure_result.msg | default('') }}

@@ -57,6 +57,10 @@ provisioner:
             additional_sql_queries:
               - '\c molecule'
               - CREATE EXTENSION IF NOT EXISTS pg_trgm;
+          # A password containing characters which need escaping in SQL.
+          - name: molecule_escaping
+            username: molecule_escaping
+            password: 'molecule-managed-db-pass''word\'
   env:
     # Workaround for https://github.com/ansible/molecule/issues/4391
     ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
