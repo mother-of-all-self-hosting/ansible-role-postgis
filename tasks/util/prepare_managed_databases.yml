@@ -79,18 +79,42 @@
           --entrypoint={{ postgis_container_shell_path }}
           {{ postgis_container_image_to_use }}
           -c
-          'psql -v ON_ERROR_STOP=0 -h {{ postgis_connection_hostname }} --file=/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql'
+          'psql -v ON_ERROR_STOP=1 -v VERBOSITY=terse -h {{ postgis_connection_hostname }} --file=/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql'
       changed_when: true
       register: postgis_managed_dbs_init_result
-      failed_when: >-
-        (postgis_managed_dbs_init_result.stderr | default('')) is search('(?m)^ERROR:')
-        or
-        (postgis_managed_dbs_init_result.stdout | default('')) is search('(?m)^ERROR:')
+      # Judged below, after the SQL file (which contains passwords) is deleted
+      # and outside of `no_log`, so that the failure can be explained.
+      failed_when: false
 
     - name: Delete managed database initialization SQL file
       ansible.builtin.file:
         path: /tmp/{{ postgis_identifier }}-init-managed-dbs-user-and-role.sql
         state: absent
+
+    # psql reports errors (and notices) on stderr. `VERBOSITY=terse` above keeps it from quoting
+    # the failing statement, but error messages may still contain values (e.g. passwords), so these are redacted.
+    - name: Fail if the managed database initialization SQL file could not be executed
+      when: postgis_managed_dbs_init_result.rc != 0
+      no_log: false
+      ansible.builtin.fail:
+        msg: |-
+          Initializing the managed databases failed: psql exited with code {{ postgis_managed_dbs_init_result.rc }}
+          ({{ postgis_managed_dbs_init_psql_exit_codes[postgis_managed_dbs_init_result.rc] | default('see the output below') }}).
+          Output (with passwords redacted):
+          {{ postgis_managed_dbs_init_result.stderr | regex_replace(postgis_managed_dbs_init_passwords_regex, '********') }}
+      vars:
+        postgis_managed_dbs_init_psql_exit_codes:
+          1: fatal psql error
+          2: could not connect to Postgres, or the connection was lost
+          3: an SQL statement failed
+        postgis_managed_dbs_init_passwords: "{{ (postgis_managed_databases | map(attribute='password') | list + [postgis_connection_password]) | map('string') | select | unique | list }}"
+        # Longest first, so that a password which contains another one is redacted whole.
+        postgis_managed_dbs_init_passwords_regex: >-
+          {{
+            postgis_managed_dbs_init_passwords | map('length') | zip(postgis_managed_dbs_init_passwords)
+            | sort(attribute='0', reverse=true) | map(attribute='1')
+            | map('regex_escape') | join('|')
+          }}
 
 - name: Ensure PostGIS is stopped, if it originally was and if we are configured to do it
   when: postgis_systemd_service_stop_originally_stopped_after_preparation | bool and postgis_ensure_started_result.changed | bool

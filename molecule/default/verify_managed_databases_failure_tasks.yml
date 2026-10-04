@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Prepare the managed databases, expecting it to fail ({{ postgis_verify_failure_case }})
+  block:
+    - name: Prepare the managed databases ({{ postgis_verify_failure_case }})
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+        tasks_from: util/prepare_managed_databases
+      vars:
+        postgis_managed_databases_additional: "{{ postgis_verify_failure_managed_databases_additional }}"
+        postgis_connection_hostname: "{{ postgis_verify_failure_connection_hostname }}"
+
+    - name: Note that preparing the managed databases succeeded ({{ postgis_verify_failure_case }})
+      ansible.builtin.set_fact:
+        postgis_verify_failure_result: null
+  rescue:
+    - name: Note how preparing the managed databases failed ({{ postgis_verify_failure_case }})
+      ansible.builtin.set_fact:
+        postgis_verify_failure_result: "{{ ansible_failed_result }}"
+
+- name: Check for a leftover managed database initialization SQL file ({{ postgis_verify_failure_case }})
+  ansible.builtin.stat:
+    path: /tmp/postgis-init-managed-dbs-user-and-role.sql
+  register: postgis_verify_failure_sql_file
+
+- name: Assert that preparing the managed databases failed as expected ({{ postgis_verify_failure_case }})
+  ansible.builtin.assert:
+    that:
+      - postgis_verify_failure_result is not none
+      - postgis_verify_failure_expected_output in (postgis_verify_failure_result.msg | default(''))
+      - postgis_verify_managed_db.password not in (postgis_verify_failure_result | to_json)
+      - not postgis_verify_failure_sql_file.stat.exists
+    fail_msg: >-
+      Preparing the managed databases ({{ postgis_verify_failure_case }})
+      {% if postgis_verify_failure_result is none %}
+      succeeded, but it should have failed.
+      {% else %}
+      did not fail as expected: the error should contain `{{ postgis_verify_failure_expected_output }}` but no password,
+      and the initialization SQL file (which contains passwords) should be deleted
+      (left behind: {{ postgis_verify_failure_sql_file.stat.exists }}).
+      Error:
+      {{ (postgis_verify_failure_result.msg | default('')) | replace(postgis_verify_managed_db.password, '<password>') }}
+      {% endif %}
+    success_msg: >-
+      Preparing the managed databases ({{ postgis_verify_failure_case }}) failed, explaining why without leaking the password:
+      {{ postgis_verify_failure_result.msg | default('') }}
