@@ -11,7 +11,7 @@
   register: postgis_ensure_started_result
 
 - name: Wait a bit, so that PostGIS can start
-  when: postgis_ensure_started_result.changed | bool
+  when: "postgis_ensure_started_result.changed | bool and (postgis_managed_databases_postgis_start_wait_timeout_seconds | int) > 0"
   ansible.builtin.wait_for:
     timeout: "{{ postgis_managed_databases_postgis_start_wait_timeout_seconds }}"
   delegate_to: 127.0.0.1

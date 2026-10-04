@@ -74,9 +74,10 @@
 
 # Defaults
 
+# No waiting is needed with the readiness check (see `postgis_managed_databases_postgis_start_wait_timeout_seconds`).
 - name: Set postgis_start_wait_time, if not provided
   ansible.builtin.set_fact:
-    postgis_start_wait_time: 15
+    postgis_start_wait_time: "{{ 0 if postgis_systemd_readiness_check_enabled | bool else 15 }}"
   when: "postgis_start_wait_time | default('') == ''"
 
 # Actual import work
@@ -94,7 +95,7 @@
     timeout: "{{ postgis_start_wait_time }}"
   delegate_to: 127.0.0.1
   become: false
-  when: "postgis_ensure_started_result.changed | bool"
+  when: "postgis_ensure_started_result.changed | bool and (postgis_start_wait_time | int) > 0"
 
 # We only stop services here, leaving it to the caller to start them later.
 #
