@@ -79,7 +79,7 @@ After running the command for installation, the Postgres instance becomes availa
 > [!WARNING]
 > **Modifying the database directly (especially as services are running) is dangerous and may lead to irreversible database corruption.** When in doubt, consider [making a backup](#backing-up-a-database). You might also want to use a web user interface software like [Adminer](https://www.adminer.org/) and [pgAdmin](https://www.pgadmin.org/).
 
-You can use the CLI installed to the directory specified with `postgis_bin_path` (default: `/postgis/bin/`) for getting interactive terminal access ([psql](https://www.postgisql.org/docs/current/app-psql.html)) to the PostgreSQL server.
+You can use the CLI installed to the directory specified with `postgis_bin_path` (default: `/postgis/bin/`) for getting interactive terminal access ([psql](https://www.postgresql.org/docs/current/app-psql.html)) to the PostgreSQL server.
 
 By default, this tool puts you in the `main` database, which contains nothing.
 
@@ -119,7 +119,7 @@ ansible-playbook -i inventory/hosts setup.yml --tags=import-postgis \
 
 - `SERVER_PATH_TO_POSTGRES_DUMP_FILE` must be a file path to a Postgres dump file on the server (not on your local machine!)
 - `postgis_default_import_database` defaults to `main`, which is useful for importing multiple databases (for dumps made with `pg_dumpall`). If you're importing a single database (e.g. `miniflux`), consider changing `postgis_default_import_database` to the name of the database (e.g. `miniflux`)
-- after importing a large database, it's a good idea to run [an `ANALYZE` operation](https://www.postgisql.org/docs/current/sql-analyze.html) to make Postgres rebuild its database statistics and optimize its query planner. You can easily do this via the playbook by running `ansible-playbook -i inventory/hosts setup.yml --tags=run-postgis-vacuum -e postgis_vacuum_preset=analyze` (refer to [Vacuuming PostgreSQL](#vacuuming-postgisql) for more details).
+- after importing a large database, it's a good idea to run [an `ANALYZE` operation](https://www.postgresql.org/docs/current/sql-analyze.html) to make Postgres rebuild its database statistics and optimize its query planner. You can easily do this via the playbook by running `ansible-playbook -i inventory/hosts setup.yml --tags=run-postgis-vacuum -e postgis_vacuum_preset=analyze` (refer to [Vacuuming PostgreSQL](#vacuuming-postgresql) for more details).
 
 ### Example playbook
 
@@ -175,14 +175,14 @@ postgis_managed_databases: |
 
 Table of contents:
 
-- [Vacuuming PostgreSQL](#vacuuming-postgisql), for when you wish to run a Postgres [VACUUM](https://www.postgisql.org/docs/current/sql-vacuum.html) (optimizing disk space)
+- [Vacuuming PostgreSQL](#vacuuming-postgresql), for when you wish to run a Postgres [VACUUM](https://www.postgresql.org/docs/current/sql-vacuum.html) (optimizing disk space)
 - [Backing up PostgreSQL](#backing-up-a-database), for when you wish to make a backup
-- [Upgrading PostgreSQL](#upgrading-postgisql), for upgrading to new major versions of PostgreSQL. Such **manual upgrades are sometimes required**.
-- [Tuning PostgreSQL](#tuning-postgisql) to make it run faster
+- [Upgrading PostgreSQL](#upgrading-postgresql), for upgrading to new major versions of PostgreSQL. Such **manual upgrades are sometimes required**.
+- [Tuning PostgreSQL](#tuning-postgresql) to make it run faster
 
 ### Vacuuming PostgreSQL
 
-Deleting lots data from Postgres does not make it release disk space, until you perform a [`VACUUM` operation](https://www.postgisql.org/docs/current/sql-vacuum.html).
+Deleting lots data from Postgres does not make it release disk space, until you perform a [`VACUUM` operation](https://www.postgresql.org/docs/current/sql-vacuum.html).
 
 You can run different `VACUUM` operations via the playbook, with the default preset being `vacuum-complete`:
 
@@ -190,7 +190,7 @@ You can run different `VACUUM` operations via the playbook, with the default pre
 - `vacuum-full`: stops all services temporarily and runs `VACUUM FULL VERBOSE`
 - `vacuum`: runs `VACUUM VERBOSE` without stopping any services
 - `vacuum-analyze` runs `VACUUM VERBOSE ANALYZE` without stopping any services
-- `analyze` runs `ANALYZE VERBOSE` without stopping any services (this is just [ANALYZE](https://www.postgisql.org/docs/current/sql-analyze.html) without doing a vacuum, so it's faster)
+- `analyze` runs `ANALYZE VERBOSE` without stopping any services (this is just [ANALYZE](https://www.postgresql.org/docs/current/sql-analyze.html) without doing a vacuum, so it's faster)
 
 **Note**: for the `vacuum-complete` and `vacuum-full` presets, you'll need plenty of available disk space in your Postgres data directory (e.g. `/mash/postgis/data`). These presets also stop all services while the vacuum operation is running.
 
@@ -254,7 +254,7 @@ To save disk space in `/tmp`, the dump file is gzipped on the fly at the expense
 
 ### Tuning PostgreSQL
 
-PostgreSQL can be [tuned](https://wiki.postgisql.org/wiki/Tuning_Your_PostgreSQL_Server) to make it run faster. This is done by passing extra arguments to the Postgres process.
+PostgreSQL can be [tuned](https://wiki.postgresql.org/wiki/Tuning_Your_PostgreSQL_Server) to make it run faster. This is done by passing extra arguments to the Postgres process.
 
 This role **already does some tuning by default**, which matches the [tuning logic](https://github.com/le0pard/pgtune/blob/master/src/features/configuration/configurationSlice.js) done by websites like <https://pgtune.leopard.in.ua/>. You can manually influence some of the tuning variables. These parameters (variables) are injected via the `postgis_postgis_process_extra_arguments_auto` variable.
 
