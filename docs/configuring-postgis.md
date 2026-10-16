@@ -19,17 +19,17 @@ SPDX-FileCopyrightText: 2024-2026 Suguru Hirahara
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Setting up Postgres
+# Setting up PostGIS
 
-This is an [Ansible](https://www.ansible.com/) role which installs [PostgreSQL](https://www.postgisql.org) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Postgres with PostGIS extensions](https://github.com/postgis/docker-postgis) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-PostgreSQL is a powerful, open-source object-relational database system with over 35 years of active development that has earned it a strong reputation for reliability, feature robustness, and performance.
+[PostGIS](https://postgis.net/) is a spatial database extender for PostgreSQL object-relational database. It adds support for storing, indexing, and querying geospatial data.
 
-See the project's [documentation](https://www.postgisql.org/docs/) to learn what PostgreSQL does and why it might be useful to you.
+See the project's [documentation](https://postgis.net/documentation/) to learn what PostGIS does and why it might be useful to you.
 
 ## Adjusting the playbook configuration
 
-To enable Postgres with this role, add the following configuration to your `vars.yml` file.
+To enable the Postgres instance with PostGIS extensions installed with this role, add the following configuration to your `vars.yml` file.
 
 **Note**: the path should be something like `inventory/host_vars/mash.example.com/vars.yml` if you use the [MASH Ansible playbook](https://github.com/mother-of-all-self-hosting/mash-playbook).
 
@@ -72,7 +72,7 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 ## Usage
 
-After running the command for installation, the Postgres instance becomes available.
+After running the command for installation, the Postgres instance with PostGIS extensions installed becomes available.
 
 ### Getting a database terminal
 
