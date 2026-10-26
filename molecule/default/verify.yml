@@ -342,3 +342,6 @@
 
 - name: Verify PostGIS managed databases
   ansible.builtin.import_playbook: verify_managed_databases.yml
+
+- name: Verify the PostGIS helper scripts
+  ansible.builtin.import_playbook: verify_helper_scripts.yml

@@ -5,17 +5,11 @@ SPDX-FileCopyrightText: 2023-2026 Slavi Pantaleev
 SPDX-License-Identifier: AGPL-3.0-or-later
 #}
 
-docker run \
+# Runs psql inside the (running) PostGIS container, connecting the same way the managed databases preparation does.
+# The credentials come from the env-postgis-psql file, which Docker reads itself, so that they do not appear on any command line.
+exec docker exec \
     -i \
-    --rm \
-    --user={{ postgis_container_uid }}:{{ postgis_container_gid }} \
-    --cap-drop=ALL \
     --env-file={{ postgis_base_path }}/env-postgis-psql \
-    {% if postgis_cli_use_unix_socket_enabled %}
-    --mount type=bind,src={{ postgis_run_path }},dst={{ postgis_run_path_in_container }} \
-    {% else %}
-    --network={{ postgis_container_network }} \
-    {% endif %}
-    {{ postgis_container_image_to_use }} \
-    psql -h {{ postgis_run_path_in_container if postgis_cli_use_unix_socket_enabled else postgis_connection_hostname }} \
+    {{ postgis_identifier }} \
+    psql -h {{ postgis_run_path_in_container if postgis_cli_use_unix_socket_enabled else '127.0.0.1' }} \
     "$@"
