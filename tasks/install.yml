@@ -79,11 +79,13 @@
     - "{{ postgis_data_path }}"
     - "{{ postgis_bin_path }}"
 
+# The container's entrypoint changes the mode of this directory (bind-mounted to `/run/postgresql`) to 3775
+# whenever it starts, so the same mode is used here (instead of fighting over it and always reporting a change).
 - name: Ensure PostGIS run path exists
   ansible.builtin.file:
     path: "{{ postgis_run_path }}"
     state: directory
-    mode: "0755"
+    mode: "3775"
     owner: "{{ postgis_uid }}"
     group: "{{ postgis_gid }}"
   when: postgis_container_unix_socket_enabled
