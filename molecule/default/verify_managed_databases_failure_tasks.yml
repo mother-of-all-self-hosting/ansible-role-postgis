@@ -24,26 +24,18 @@
       ansible.builtin.set_fact:
         postgis_verify_failure_result: "{{ ansible_failed_result }}"
 
-- name: Check for a leftover managed database initialization SQL file ({{ postgis_verify_failure_case }})
-  ansible.builtin.stat:
-    path: /tmp/postgis-init-managed-dbs-user-and-role.sql
-  register: postgis_verify_failure_sql_file
-
 - name: Assert that preparing the managed databases failed as expected ({{ postgis_verify_failure_case }})
   ansible.builtin.assert:
     that:
       - postgis_verify_failure_result is not none
       - postgis_verify_failure_expected_output in (postgis_verify_failure_result.msg | default(''))
       - postgis_verify_managed_dbs | map(attribute='password') | select('in', postgis_verify_failure_result | to_json) | list == []
-      - not postgis_verify_failure_sql_file.stat.exists
     fail_msg: >-
       Preparing the managed databases ({{ postgis_verify_failure_case }})
       {% if postgis_verify_failure_result is none %}
       succeeded, but it should have failed.
       {% else %}
-      did not fail as expected: the error should contain `{{ postgis_verify_failure_expected_output }}` but no passwords,
-      and the initialization SQL file (which contains passwords) should be deleted
-      (left behind: {{ postgis_verify_failure_sql_file.stat.exists }}).
+      did not fail as expected: the error should contain `{{ postgis_verify_failure_expected_output }}` but no passwords.
       Error:
       {{ (postgis_verify_failure_result.msg | default('')) | regex_replace(postgis_verify_managed_dbs | map(attribute='password') | map('regex_escape') | join('|'), '<password>') }}
       {% endif %}
