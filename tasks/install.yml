@@ -112,7 +112,6 @@
     - cli
     - cli-non-interactive
     - dump-all
-  register: postgis_scripts_result
 
 - name: Ensure PostGIS container network is created
   community.docker.docker_network:
@@ -133,7 +132,6 @@
     postgis_restart_necessary: >-
       {{
         postgis_config_file_result.changed | default(false)
-        or postgis_scripts_result.changed | default(false)
         or postgis_systemd_service_result.changed | default(false)
         or postgis_container_image_pull_result.changed | default(false)
       }}
