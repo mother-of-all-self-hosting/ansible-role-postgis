@@ -8,7 +8,26 @@
   become: true
   gather_facts: false
 
+  vars:
+    # psql connects to Postgres from inside its container (over 127.0.0.1), so making Postgres
+    # unreachable over the network has no effect. `pg_hba.conf` is made to reject such connections instead.
+    # These commands contain no `$`, so that they can be passed through other commands (like `systemd-run`) as they are.
+    postgis_verify_reject_connections_command: >-
+      docker exec postgis sh -c 'sed -i "1i host all all 127.0.0.1/32 reject # molecule-reject" {{ postgis_verify_hba_file | quote }} && pg_ctl reload --silent'
+    postgis_verify_accept_connections_command: >-
+      docker exec postgis sh -c 'sed -i "/# molecule-reject/d" {{ postgis_verify_hba_file | quote }} && pg_ctl reload --silent'
+
   tasks:
+    - name: Determine the path of pg_hba.conf
+      ansible.builtin.command:
+        cmd: /postgis/bin/cli-non-interactive -tAc "SHOW hba_file"
+      register: postgis_verify_hba_file_result
+      changed_when: false
+
+    - name: Remember the path of pg_hba.conf
+      ansible.builtin.set_fact:
+        postgis_verify_hba_file: "{{ postgis_verify_hba_file_result.stdout }}"
+
     # A fact rather than a play variable, because the checks below override
     # `postgis_managed_databases_additional` based on it.
     - name: Determine the managed databases to verify
@@ -65,12 +84,13 @@
 
     # Postgres may not accept connections yet when preparation starts (e.g. when it starts up slower
     # than `postgis_managed_databases_postgis_start_wait_timeout_seconds`). Postgres starts up too fast
-    # here to reproduce that reliably, so it is made unreachable for a while instead, which psql fails on the same way.
-    - name: Make Postgres unreachable for a while
+    # here to reproduce that reliably, so it is made to reject connections for a while instead, which psql fails on the same way.
+    # Timers are only accurate to a minute by default, which could outlast the retries.
+    - name: Make Postgres reject connections for a while
       ansible.builtin.shell:
         cmd: >-
-          docker network disconnect postgis postgis
-          && systemd-run --on-active=10 docker network connect postgis postgis
+          {{ postgis_verify_reject_connections_command }}
+          && systemd-run --on-active=10 --timer-property=AccuracySec=100ms sh -c {{ postgis_verify_accept_connections_command | quote }}
       changed_when: true
 
     - name: Prepare the managed databases while Postgres is unreachable for a while
@@ -95,7 +115,7 @@
           - "{{ postgis_verify_managed_dbs[0] }}"
           - "{{ postgis_verify_managed_dbs[1] | combine({'additional_sql_queries': [postgis_verify_failure_query]}) }}"
         postgis_verify_failure_query: "SELECT '{{ postgis_verify_managed_dbs[1].password | replace(\"'\", \"''\") }}'::integer;"
-        postgis_verify_failure_connection_hostname: postgis
+        postgis_verify_failure_reject_connections: false
         postgis_verify_failure_expected_output: 'ERROR:  invalid input syntax for type integer'
 
     - name: Verify that failing to connect fails the preparation
@@ -103,5 +123,5 @@
       vars:
         postgis_verify_failure_case: failing to connect
         postgis_verify_failure_managed_databases_additional: "{{ postgis_verify_managed_dbs }}"
-        postgis_verify_failure_connection_hostname: molecule-nonexistent-host
-        postgis_verify_failure_expected_output: 'psql: error:'
+        postgis_verify_failure_reject_connections: true
+        postgis_verify_failure_expected_output: 'pg_hba.conf rejects connection'

@@ -17,19 +17,6 @@
   delegate_to: 127.0.0.1
   become: false
 
-# If PostGIS is up from before, but it had originally been installed on a different container network,
-# trying to prepare databases by connecting to `postgis_container_network` would fail.
-# For this reason, we determine and use the currently used network.
-# Restarting the service later would put it in the current network.
-- name: Check PostGIS container network
-  ansible.builtin.command: "{{ devture_systemd_docker_base_host_command_docker }} container inspect {{ postgis_identifier }} --format '{% raw %}{{.HostConfig.NetworkMode}}{% endraw %}'"
-  register: postgis_container_network_check_result
-  changed_when: false
-
-- name: Set PostGIS container network to use for preparing databases
-  ansible.builtin.set_fact:
-    postgis_container_network_for_preparing_databases: "{{ postgis_container_network_check_result.stdout }}"
-
 - name: Detect managed databases with invalid fields
   ansible.builtin.set_fact:
     postgis_managed_databases_with_missing_keys: >-
@@ -57,22 +44,18 @@
 - name: Ensure managed databases are prepared
   when: postgis_managed_databases | length > 0
   postgis_managed_databases:
+    # psql runs inside the (already started) Postgres container and connects the same way its readiness check does.
     psql_command: >-
       {{
         devture_systemd_docker_base_host_command_docker.split()
         + [
-          'run',
+          'exec',
           '-i',
-          '--rm',
-          '--user=' ~ postgis_container_uid ~ ':' ~ postgis_container_gid,
-        ]
-        + (['--cap-drop=ALL'] if postgis_container_cap_drop_all_enabled else [])
-        + [
           '--env-file=' ~ postgis_base_path ~ '/env-postgis-psql',
-          '--network=' ~ postgis_container_network_for_preparing_databases,
-          '--entrypoint=psql',
-          postgis_container_image_to_use,
-          '--host=' ~ postgis_connection_hostname,
+          postgis_identifier,
+          'psql',
+          '--host=127.0.0.1',
+          '--port=5432',
         ]
       }}
     # Only the keys the module knows about are passed (definitions may contain others).

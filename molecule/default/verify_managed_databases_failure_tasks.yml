@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
+- name: Make Postgres reject connections ({{ postgis_verify_failure_case }})
+  when: postgis_verify_failure_reject_connections | bool
+  ansible.builtin.command:
+    cmd: "{{ postgis_verify_reject_connections_command }}"
+  changed_when: true
+
 - name: Prepare the managed databases, expecting it to fail ({{ postgis_verify_failure_case }})
   block:
     - name: Prepare the managed databases ({{ postgis_verify_failure_case }})
@@ -11,7 +17,6 @@
         tasks_from: util/prepare_managed_databases
       vars:
         postgis_managed_databases_additional: "{{ postgis_verify_failure_managed_databases_additional }}"
-        postgis_connection_hostname: "{{ postgis_verify_failure_connection_hostname }}"
         # Failing to connect is retried, but retrying once is enough to see it given up on.
         postgis_managed_databases_connection_retries: 1
         postgis_managed_databases_connection_retry_delay_seconds: 1
@@ -23,6 +28,12 @@
     - name: Note how preparing the managed databases failed ({{ postgis_verify_failure_case }})
       ansible.builtin.set_fact:
         postgis_verify_failure_result: "{{ ansible_failed_result }}"
+  always:
+    - name: Make Postgres accept connections again ({{ postgis_verify_failure_case }})
+      when: postgis_verify_failure_reject_connections | bool
+      ansible.builtin.command:
+        cmd: "{{ postgis_verify_accept_connections_command }}"
+      changed_when: true
 
 - name: Assert that preparing the managed databases failed as expected ({{ postgis_verify_failure_case }})
   ansible.builtin.assert:
