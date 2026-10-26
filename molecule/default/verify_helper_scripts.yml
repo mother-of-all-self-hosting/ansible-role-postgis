@@ -68,3 +68,42 @@
           - postgis_verify_dump.stdout is search('PostgreSQL database cluster dump')
         fail_msg: "The dump is not a complete Postgres cluster dump: {{ postgis_verify_dump.stdout }}{{ postgis_verify_dump.stderr }}"
         success_msg: "The dump-all script makes a complete Postgres cluster dump"
+
+    # A dump of the whole server (as made above) cannot be imported back into the same server,
+    # as it re-creates roles and databases which exist, so a small dump is made up for this.
+    - name: Make a small compressed dump to import
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail
+          && docker exec -i postgis sh -c 'zstd --stdout' > {{ postgis_verify_dump_directory }}/molecule-import.sql.zst
+        stdin: |
+          CREATE DATABASE molecule_import;
+          \c molecule_import
+          CREATE TABLE probe (value text);
+          INSERT INTO probe VALUES ('molecule-import-value');
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Include the variables the PostGIS role relies on
+      ansible.builtin.include_role:
+        name: com.devture.ansible.role.systemd_docker_base
+        public: true
+
+    - name: Import the small dump
+      ansible.builtin.include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+        tasks_from: import_postgis
+      vars:
+        server_path_postgis_dump: "{{ postgis_verify_dump_directory }}/molecule-import.sql.zst"
+
+    - name: Read the imported data back
+      ansible.builtin.command:
+        cmd: /postgis/bin/cli-non-interactive -d molecule_import -tAc "SELECT value FROM probe"
+      register: postgis_verify_imported
+      changed_when: false
+
+    - name: Assert the dump was imported
+      ansible.builtin.assert:
+        that: (postgis_verify_imported.stdout | trim) == 'molecule-import-value'
+        fail_msg: "Importing did not bring the data in: {{ postgis_verify_imported.stdout }}{{ postgis_verify_imported.stderr }}"
+        success_msg: "Importing a compressed dump works"
