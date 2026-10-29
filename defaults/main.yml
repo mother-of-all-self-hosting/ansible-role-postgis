@@ -180,7 +180,7 @@ postgis_container_image_v14: "{{ postgis_container_image_registry_prefix }}{{ po
 postgis_container_image_v14_version: "14-3.5"
 
 postgis_container_image_v15: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v15_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v15_version: "15-3.5"
+postgis_container_image_v15_version: "15-3.6"
 
 postgis_container_image_v16: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v16_version }}{{ postgis_container_image_suffix }}"
 postgis_container_image_v16_version: "16-3.5"
