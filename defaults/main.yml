@@ -189,7 +189,7 @@ postgis_container_image_v17: "{{ postgis_container_image_registry_prefix }}{{ po
 postgis_container_image_v17_version: "17-3.7"
 
 postgis_container_image_v18: "{{ postgis_container_image_registry_prefix }}{{ postgis_container_image_name }}:{{ postgis_container_image_v18_version }}{{ postgis_container_image_suffix }}"
-postgis_container_image_v18_version: "18-3.6"
+postgis_container_image_v18_version: "18-3.7"
 
 postgis_container_image_by_major_version:
   "9": "{{ postgis_container_image_v9 }}"
