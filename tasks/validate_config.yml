@@ -29,10 +29,8 @@
       You need to define a required configuration setting (`{{ item }}`).
   when: "lookup('vars', item, default='') | string | length == 0"
   with_items:
-    - postgis_identifier
     - postgis_uid
     - postgis_gid
-    - postgis_container_network
     - postgis_connection_hostname
     - postgis_connection_port
     - postgis_connection_username
